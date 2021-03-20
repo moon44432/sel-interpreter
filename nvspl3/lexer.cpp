@@ -1,4 +1,5 @@
 #include "lexer.h"
+#include <iostream>
 
 std::string IdentifierStr;
 double NumVal;
@@ -11,19 +12,25 @@ int gettok()
     while (isspace(LastChar))
         LastChar = getchar();
 
-    if (isalpha(LastChar))
-    { // identifier: [a-zA-Z][a-zA-Z0-9]*
+    if (isalpha(LastChar) || LastChar == '_')
+    { // identifier: [a-zA-Z_][a-zA-Z0-9_]*
+        std::cout << IdentifierStr << std::endl;
         IdentifierStr = LastChar;
-        LastChar = getchar();
-        while (isalnum(LastChar) || LastChar == '_')
+        
+        do {
+            LastChar = getchar();
             IdentifierStr += LastChar;
+        } while (isalnum(LastChar) || LastChar == '_');
 
         if (IdentifierStr == "func")
             return tok_def;
         if (IdentifierStr == "extern")
             return tok_extern;
         if (IdentifierStr == "if")
+        {
+            std::cout << "if statement" << std::endl;
             return tok_if;
+        }
         if (IdentifierStr == "then")
             return tok_then;
         if (IdentifierStr == "else")
@@ -63,8 +70,16 @@ int gettok()
             return gettok();
     }
 
-    if (LastChar == '{') return tok_openblock;
-    if (LastChar == '}') return tok_closeblock;
+    if (LastChar == '{')
+    {
+        LastChar = getchar();
+        return tok_openblock;
+    }
+    if (LastChar == '}')
+    {
+        LastChar = getchar();
+        return tok_closeblock;
+    }
 
     // Check for end of file.  Don't eat the EOF.
     if (LastChar == EOF)

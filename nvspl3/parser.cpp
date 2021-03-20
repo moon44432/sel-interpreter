@@ -1,5 +1,6 @@
 #include "parser.h"
 #include "lexer.h"
+#include <iostream>
 
 
 int CurTok;
@@ -27,20 +28,8 @@ int getNextToken()
 }
 
 /// GetTokPrecedence - Get the precedence of the pending binary operator token.
-int GetTokPrecedence()
+int GetTokPrecedence(std::string Op)
 {
-	if (!isascii(CurTok))
-		return -1;
-
-	std::string Op = "";
-	Op += (char)CurTok;
-
-	if (OpChrList.find(LastChar) != std::string::npos)
-	{
-		Op += (char)LastChar;
-		getNextToken();
-	}
-	
 	// Make sure it's a declared binop.
 	int TokPrec = BinopPrecedence[Op];
 	if (TokPrec <= 0)
@@ -98,8 +87,10 @@ std::unique_ptr<ExprAST> ParseIdentifierExpr()
 	// Call.
 	getNextToken(); // eat (
 	std::vector<std::unique_ptr<ExprAST>> Args;
-	if (CurTok != ')') {
-		while (true) {
+	if (CurTok != ')')
+	{
+		while (true)
+		{
 			if (auto Arg = ParseExpression())
 				Args.push_back(std::move(Arg));
 			else
@@ -134,7 +125,7 @@ std::unique_ptr<ExprAST> ParseIfExpr()
 		return LogError("expected then");
 	getNextToken(); // eat the then
 
-	auto Then = ParseExpression();
+	auto Then = ParseBlockExpression();
 	if (!Then)
 		return nullptr;
 
@@ -143,7 +134,7 @@ std::unique_ptr<ExprAST> ParseIfExpr()
 
 	getNextToken();
 
-	auto Else = ParseExpression();
+	auto Else = ParseBlockExpression();
 	if (!Else)
 		return nullptr;
 
@@ -192,9 +183,9 @@ std::unique_ptr<ExprAST> ParseForExpr()
 
 	if (CurTok != ')')
 		return LogError("expected ')' after for");
-	getNextToken(); // eat 'in'.
+	getNextToken(); // eat ')'.
 
-	auto Body = ParseExpression();
+	auto Body = ParseBlockExpression();
 	if (!Body)
 		return nullptr;
 
@@ -202,58 +193,6 @@ std::unique_ptr<ExprAST> ParseForExpr()
 		std::move(Step), std::move(Body));
 }
 
-/// varexpr ::= 'var' identifier ('=' expression)?
-//                    (',' identifier ('=' expression)?)* 'in' expression
-std::unique_ptr<ExprAST> ParseVarExpr()
-{
-	getNextToken(); // eat the var.
-
-	if (CurTok != '(')
-		return LogError("expected '(' after var");
-	getNextToken();
-
-	std::vector<std::pair<std::string, std::unique_ptr<ExprAST>>> VarNames;
-
-	// At least one variable name is required.
-	if (CurTok != tok_identifier)
-		return LogError("expected identifier after var");
-
-	while (true) {
-		std::string Name = IdentifierStr;
-		getNextToken(); // eat identifier.
-
-		// Read the optional initializer.
-		std::unique_ptr<ExprAST> Init = nullptr;
-		if (CurTok == '=') {
-			getNextToken(); // eat the '='.
-
-			Init = ParseExpression();
-			if (!Init)
-				return nullptr;
-		}
-
-		VarNames.push_back(std::make_pair(Name, std::move(Init)));
-
-		// End of var list, exit loop.
-		if (CurTok != ',')
-			break;
-		getNextToken(); // eat the ','.
-
-		if (CurTok != tok_identifier)
-			return LogError("expected identifier list after var");
-	}
-
-	// At this point, we have to have ')'.
-	if (CurTok != ')')
-		return LogError("expected ')'");
-	getNextToken(); // eat ')'.
-
-	auto Body = ParseExpression();
-	if (!Body)
-		return nullptr;
-
-	return std::make_unique<VarExprAST>(std::move(VarNames), std::move(Body));
-}
 
 /// primary
 ///   ::= identifierexpr
@@ -262,7 +201,7 @@ std::unique_ptr<ExprAST> ParseVarExpr()
 ///   ::= ifexpr
 ///   ::= forexpr
 ///   ::= varexpr
-std::unique_ptr<ExprAST> ParsePrimary() 
+std::unique_ptr<ExprAST> ParsePrimary()
 {
 	switch (CurTok) {
 	default:
@@ -273,8 +212,8 @@ std::unique_ptr<ExprAST> ParsePrimary()
 		return ParseNumberExpr();
 	case tok_for:
 		return ParseForExpr();
-	case tok_var:
-		return ParseVarExpr();
+	// case tok_var:
+	// 	return ParseVarExpr();
 	case tok_if:
 		return ParseIfExpr();
 	case '(': // must be the last one (for, var, if, etc also use '(')
@@ -285,7 +224,7 @@ std::unique_ptr<ExprAST> ParsePrimary()
 /// unary
 ///   ::= primary
 ///   ::= '!' unary
-std::unique_ptr<ExprAST> ParseUnary() 
+std::unique_ptr<ExprAST> ParseUnary()
 {
 	// If the current token is not an operator, it must be a primary expr.
 	if (!isascii(CurTok) || CurTok == '(' || CurTok == ',')
@@ -294,6 +233,7 @@ std::unique_ptr<ExprAST> ParseUnary()
 	// If this is a unary operator, read it.
 	int Opc = CurTok;
 	getNextToken();
+	std::cout << "UnaryOp" << (char)Opc << std::endl;
 	if (auto Operand = ParseUnary())
 		return std::make_unique<UnaryExprAST>(Opc, std::move(Operand));
 	return nullptr;
@@ -301,27 +241,29 @@ std::unique_ptr<ExprAST> ParseUnary()
 
 /// binoprhs
 ///   ::= ('+' unary)*
-std::unique_ptr<ExprAST> ParseBinOpRHS(int ExprPrec, std::unique_ptr<ExprAST> LHS) 
+std::unique_ptr<ExprAST> ParseBinOpRHS(int ExprPrec, std::unique_ptr<ExprAST> LHS)
 {
 	// If this is a binop, find its precedence.
-	while (true) {
-		int TokPrec = GetTokPrecedence();
+	while (true)
+	{
+		std::string BinOp;
+		BinOp += (char)CurTok;
+
+		if (OpChrList.find(CurTok) != std::string::npos && 
+			OpChrList.find(LastChar) != std::string::npos)
+		{
+			BinOp += (char)LastChar;
+			getNextToken();
+		}
+		int TokPrec = GetTokPrecedence(BinOp);
+		std::cout << BinOp << std::endl;
 
 		// If this is a binop that binds at least as tightly as the current binop,
 		// consume it, otherwise we are done.
 		if (TokPrec < ExprPrec)
 			return LHS;
 
-		// Okay, we know this is a binop.
-		std::string BinOp;
-		BinOp += (char)CurTok;
 		getNextToken();
-
-		if (OpChrList.find(CurTok) != std::string::npos)
-		{
-			BinOp += (char)CurTok;
-			getNextToken();
-		}
 
 		// Parse the unary expression after the binary operator.
 		auto RHS = ParseUnary();
@@ -330,7 +272,16 @@ std::unique_ptr<ExprAST> ParseBinOpRHS(int ExprPrec, std::unique_ptr<ExprAST> LH
 
 		// If BinOp binds less tightly with RHS than the operator after RHS, let
 		// the pending operator take RHS as its LHS.
-		int NextPrec = GetTokPrecedence();
+		std::string NextOp;
+		NextOp += (char)CurTok;
+
+		if (OpChrList.find(CurTok) != std::string::npos &&
+			OpChrList.find(LastChar) != std::string::npos)
+		{
+			NextOp += (char)LastChar;
+		}
+
+		int NextPrec = GetTokPrecedence(NextOp);
 		if (TokPrec < NextPrec) {
 			RHS = ParseBinOpRHS(TokPrec + 1, std::move(RHS));
 			if (!RHS)
@@ -359,15 +310,18 @@ std::unique_ptr<ExprAST> ParseExpression()
 std::unique_ptr<ExprAST> ParseBlockExpression()
 {
 	if (CurTok != tok_openblock)
-		ParseExpression();
-
+	{
+		printf("Parse Expression... ch : %c\n", LastChar);
+		return ParseExpression();
+	}
 	std::vector<std::unique_ptr<ExprAST>> ExprSeq;
 
 	getNextToken();
+	printf("Parse Block Expression... ch : %c\n", LastChar);
 	while (true)
 	{
-		auto Expr = ParseExpression();
-		ExprSeq.push_back(Expr);
+		auto Expr = ParseBlockExpression();
+		ExprSeq.push_back(std::move(Expr));
 		if (CurTok == ';')
 			getNextToken();
 		if (CurTok == tok_closeblock)
@@ -376,7 +330,7 @@ std::unique_ptr<ExprAST> ParseBlockExpression()
 			break;
 		}
 	}
-	auto Block = std::make_unique<BlockExprAST>(ExprSeq);
+	auto Block = std::make_unique<BlockExprAST>(std::move(ExprSeq));
 	return std::move(Block);
 }
 
@@ -414,13 +368,18 @@ std::unique_ptr<PrototypeAST> ParsePrototype()
 			return LogErrorP("Expected binary operator");
 		FnName = "binary";
 		FnName += (char)CurTok;
+		if (OpChrList.find(LastChar) != std::string::npos)
+		{
+			FnName += (char)LastChar;
+			getNextToken();
+		}
 		Kind = 2;
 		getNextToken();
 
 		// Read the precedence if present.
 		if (CurTok == tok_number) {
 			if (NumVal < 1 || NumVal > 100)
-				return LogErrorP("Invalid precedence: must be 1..100");
+				return LogErrorP("Invalid precedence: must be 1~100");
 			BinaryPrecedence = (unsigned)NumVal;
 			getNextToken();
 		}
@@ -431,13 +390,18 @@ std::unique_ptr<PrototypeAST> ParsePrototype()
 		return LogErrorP("Expected '(' in prototype");
 
 	std::vector<std::string> ArgNames;
-	while (getNextToken() == tok_identifier)
-		ArgNames.push_back(IdentifierStr);
-	if (CurTok != ')')
-		return LogErrorP("Expected ')' in prototype");
+	while (true)
+	{
+		if (getNextToken() == tok_identifier)
+			ArgNames.push_back(IdentifierStr);
+		if (CurTok == ')') break;
+		if (CurTok != ',')
+			return LogErrorP("Expected ','");
+		getNextToken(); // eat ','
+	}
 
 	// success.
-	getNextToken(); // eat ')'.
+	getNextToken(); // eat ')'
 
 	// Verify right number of names for operator.
 	if (Kind && ArgNames.size() != Kind)
@@ -455,7 +419,7 @@ std::unique_ptr<FunctionAST> ParseDefinition()
 	if (!Proto)
 		return nullptr;
 
-	if (auto E = ParseExpression())
+	if (auto E = ParseBlockExpression())
 		return std::make_unique<FunctionAST>(std::move(Proto), std::move(E));
 	return nullptr;
 }
@@ -463,7 +427,7 @@ std::unique_ptr<FunctionAST> ParseDefinition()
 /// toplevelexpr ::= expression
 std::unique_ptr<FunctionAST> ParseTopLevelExpr()
 {
-	if (auto E = ParseExpression()) {
+	if (auto E = ParseBlockExpression()) {
 		// Make an anonymous proto.
 		auto Proto = std::make_unique<PrototypeAST>("__anon_expr",
 			std::vector<std::string>());
