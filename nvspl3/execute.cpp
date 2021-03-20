@@ -195,8 +195,10 @@ Value IfExprAST::execute() {
         Value RetVal(true);
         return RetVal;
     }
+
     if ((bool)(CondV.getVal()))
     {
+        std::cout << "then" << std::endl;
         Value ThenV = Then->execute();
         if (ThenV.isEmpty())
         {
@@ -207,6 +209,7 @@ Value IfExprAST::execute() {
     }
     else
     {
+        std::cout << "else" << std::endl;
         Value ElseV = Else->execute();
         if (ElseV.isEmpty())
         {
@@ -246,6 +249,7 @@ Value ForExprAST::execute()
             Value RetVal(true);
             return RetVal;
         }
+        if (!(bool)EndCond.getVal()) break;
 
         Value BodyExpr = Body->execute();
         if (BodyExpr.isEmpty())

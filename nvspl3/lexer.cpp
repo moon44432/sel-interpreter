@@ -17,20 +17,20 @@ int gettok()
         std::cout << IdentifierStr << std::endl;
         IdentifierStr = LastChar;
         
-        do {
+        while (true)
+        {
             LastChar = getchar();
-            IdentifierStr += LastChar;
-        } while (isalnum(LastChar) || LastChar == '_');
+            if (isalnum(LastChar) || LastChar == '_') IdentifierStr += LastChar;
+            else break;
+        }
 
+        std::cout << IdentifierStr << std::endl;
         if (IdentifierStr == "func")
             return tok_def;
         if (IdentifierStr == "extern")
             return tok_extern;
         if (IdentifierStr == "if")
-        {
-            std::cout << "if statement" << std::endl;
             return tok_if;
-        }
         if (IdentifierStr == "then")
             return tok_then;
         if (IdentifierStr == "else")

@@ -212,8 +212,6 @@ std::unique_ptr<ExprAST> ParsePrimary()
 		return ParseNumberExpr();
 	case tok_for:
 		return ParseForExpr();
-	// case tok_var:
-	// 	return ParseVarExpr();
 	case tok_if:
 		return ParseIfExpr();
 	case '(': // must be the last one (for, var, if, etc also use '(')
