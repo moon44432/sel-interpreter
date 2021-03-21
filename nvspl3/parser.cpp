@@ -38,28 +38,28 @@ int GetTokPrecedence(std::string Op)
 }
 
 /// LogError* - These are little helper functions for error handling.
-std::unique_ptr<ExprAST> LogError(const char* Str)
+std::shared_ptr<ExprAST> LogError(const char* Str)
 {
 	fprintf(stderr, "Error: %s\n", Str);
 	return nullptr;
 }
 
-std::unique_ptr<PrototypeAST> LogErrorP(const char* Str)
+std::shared_ptr<PrototypeAST> LogErrorP(const char* Str)
 {
 	LogError(Str);
 	return nullptr;
 }
 
 /// numberexpr ::= number
-std::unique_ptr<ExprAST> ParseNumberExpr()
+std::shared_ptr<ExprAST> ParseNumberExpr()
 {
-	auto Result = std::make_unique<NumberExprAST>(NumVal);
+	auto Result = std::make_shared<NumberExprAST>(NumVal);
 	getNextToken(); // consume the number
 	return std::move(Result);
 }
 
 /// parenexpr ::= '(' expression ')'
-std::unique_ptr<ExprAST> ParseParenExpr()
+std::shared_ptr<ExprAST> ParseParenExpr()
 {
 	getNextToken(); // eat (.
 	auto V = ParseExpression();
@@ -75,18 +75,18 @@ std::unique_ptr<ExprAST> ParseParenExpr()
 /// identifierexpr
 ///   ::= identifier
 ///   ::= identifier '(' expression* ')'
-std::unique_ptr<ExprAST> ParseIdentifierExpr()
+std::shared_ptr<ExprAST> ParseIdentifierExpr()
 {
 	std::string IdName = IdentifierStr;
 
 	getNextToken(); // eat identifier.
 
 	if (CurTok != '(') // Simple variable ref.
-		return std::make_unique<VariableExprAST>(IdName);
+		return std::make_shared<VariableExprAST>(IdName);
 
 	// Call.
 	getNextToken(); // eat (
-	std::vector<std::unique_ptr<ExprAST>> Args;
+	std::vector<std::shared_ptr<ExprAST>> Args;
 	if (CurTok != ')')
 	{
 		while (true)
@@ -108,11 +108,11 @@ std::unique_ptr<ExprAST> ParseIdentifierExpr()
 	// Eat the ')'.
 	getNextToken();
 
-	return std::make_unique<CallExprAST>(IdName, std::move(Args));
+	return std::make_shared<CallExprAST>(IdName, std::move(Args));
 }
 
 /// ifexpr ::= 'if' expression 'then' expression 'else' expression
-std::unique_ptr<ExprAST> ParseIfExpr()
+std::shared_ptr<ExprAST> ParseIfExpr()
 {
 	getNextToken(); // eat the if.
 
@@ -138,12 +138,12 @@ std::unique_ptr<ExprAST> ParseIfExpr()
 	if (!Else)
 		return nullptr;
 
-	return std::make_unique<IfExprAST>(std::move(Cond), std::move(Then),
+	return std::make_shared<IfExprAST>(std::move(Cond), std::move(Then),
 		std::move(Else));
 }
 
 /// forexpr ::= 'for' identifier '=' expr ',' expr (',' expr)? 'in' expression
-std::unique_ptr<ExprAST> ParseForExpr()
+std::shared_ptr<ExprAST> ParseForExpr()
 {
 	getNextToken(); // eat the for.
 
@@ -173,7 +173,7 @@ std::unique_ptr<ExprAST> ParseForExpr()
 		return nullptr;
 
 	// The step value is optional.
-	std::unique_ptr<ExprAST> Step;
+	std::shared_ptr<ExprAST> Step;
 	if (CurTok == ',') {
 		getNextToken();
 		Step = ParseExpression();
@@ -189,7 +189,7 @@ std::unique_ptr<ExprAST> ParseForExpr()
 	if (!Body)
 		return nullptr;
 
-	return std::make_unique<ForExprAST>(IdName, std::move(Start), std::move(End),
+	return std::make_shared<ForExprAST>(IdName, std::move(Start), std::move(End),
 		std::move(Step), std::move(Body));
 }
 
@@ -201,7 +201,7 @@ std::unique_ptr<ExprAST> ParseForExpr()
 ///   ::= ifexpr
 ///   ::= forexpr
 ///   ::= varexpr
-std::unique_ptr<ExprAST> ParsePrimary()
+std::shared_ptr<ExprAST> ParsePrimary()
 {
 	switch (CurTok) {
 	default:
@@ -222,7 +222,7 @@ std::unique_ptr<ExprAST> ParsePrimary()
 /// unary
 ///   ::= primary
 ///   ::= '!' unary
-std::unique_ptr<ExprAST> ParseUnary()
+std::shared_ptr<ExprAST> ParseUnary()
 {
 	// If the current token is not an operator, it must be a primary expr.
 	if (!isascii(CurTok) || CurTok == '(' || CurTok == ',')
@@ -233,13 +233,13 @@ std::unique_ptr<ExprAST> ParseUnary()
 	getNextToken();
 	std::cout << "UnaryOp" << (char)Opc << std::endl;
 	if (auto Operand = ParseUnary())
-		return std::make_unique<UnaryExprAST>(Opc, std::move(Operand));
+		return std::make_shared<UnaryExprAST>(Opc, std::move(Operand));
 	return nullptr;
 }
 
 /// binoprhs
 ///   ::= ('+' unary)*
-std::unique_ptr<ExprAST> ParseBinOpRHS(int ExprPrec, std::unique_ptr<ExprAST> LHS)
+std::shared_ptr<ExprAST> ParseBinOpRHS(int ExprPrec, std::shared_ptr<ExprAST> LHS)
 {
 	// If this is a binop, find its precedence.
 	while (true)
@@ -288,14 +288,14 @@ std::unique_ptr<ExprAST> ParseBinOpRHS(int ExprPrec, std::unique_ptr<ExprAST> LH
 
 		// Merge LHS/RHS.
 		LHS =
-			std::make_unique<BinaryExprAST>(BinOp, std::move(LHS), std::move(RHS));
+			std::make_shared<BinaryExprAST>(BinOp, std::move(LHS), std::move(RHS));
 	}
 }
 
 /// expression
 ///   ::= unary binoprhs
 ///
-std::unique_ptr<ExprAST> ParseExpression()
+std::shared_ptr<ExprAST> ParseExpression()
 {
 	auto LHS = ParseUnary();
 	if (!LHS)
@@ -305,14 +305,14 @@ std::unique_ptr<ExprAST> ParseExpression()
 }
 
 /// blockexpr
-std::unique_ptr<ExprAST> ParseBlockExpression()
+std::shared_ptr<ExprAST> ParseBlockExpression()
 {
 	if (CurTok != tok_openblock)
 	{
 		printf("Parse Expression... ch : %c\n", LastChar);
 		return ParseExpression();
 	}
-	std::vector<std::unique_ptr<ExprAST>> ExprSeq;
+	std::vector<std::shared_ptr<ExprAST>> ExprSeq;
 
 	getNextToken();
 	printf("Parse Block Expression... ch : %c\n", LastChar);
@@ -328,7 +328,7 @@ std::unique_ptr<ExprAST> ParseBlockExpression()
 			break;
 		}
 	}
-	auto Block = std::make_unique<BlockExprAST>(std::move(ExprSeq));
+	auto Block = std::make_shared<BlockExprAST>(std::move(ExprSeq));
 	return std::move(Block);
 }
 
@@ -336,7 +336,7 @@ std::unique_ptr<ExprAST> ParseBlockExpression()
 ///   ::= id '(' id* ')'
 ///   ::= binary LETTER number? (id, id)
 ///   ::= unary LETTER (id)
-std::unique_ptr<PrototypeAST> ParsePrototype()
+std::shared_ptr<PrototypeAST> ParsePrototype()
 {
 	std::string FnName;
 
@@ -392,11 +392,14 @@ std::unique_ptr<PrototypeAST> ParsePrototype()
 	{
 		if (getNextToken() == tok_identifier)
 			ArgNames.push_back(IdentifierStr);
+
+		getNextToken();
 		if (CurTok == ')') break;
 		if (CurTok != ',')
 			return LogErrorP("Expected ','");
-		getNextToken(); // eat ','
 	}
+
+	std::cout << ArgNames.size() << std::endl;
 
 	// success.
 	getNextToken(); // eat ')'
@@ -405,12 +408,12 @@ std::unique_ptr<PrototypeAST> ParsePrototype()
 	if (Kind && ArgNames.size() != Kind)
 		return LogErrorP("Invalid number of operands for operator");
 
-	return std::make_unique<PrototypeAST>(FnName, ArgNames, Kind != 0,
+	return std::make_shared<PrototypeAST>(FnName, ArgNames, Kind != 0,
 		BinaryPrecedence);
 }
 
 /// definition ::= 'func' prototype expression
-std::unique_ptr<FunctionAST> ParseDefinition()
+std::shared_ptr<FunctionAST> ParseDefinition()
 {
 	getNextToken(); // eat func.
 	auto Proto = ParsePrototype();
@@ -418,18 +421,18 @@ std::unique_ptr<FunctionAST> ParseDefinition()
 		return nullptr;
 
 	if (auto E = ParseBlockExpression())
-		return std::make_unique<FunctionAST>(std::move(Proto), std::move(E));
+		return std::make_shared<FunctionAST>(std::move(Proto), std::move(E));
 	return nullptr;
 }
 
 /// toplevelexpr ::= expression
-std::unique_ptr<FunctionAST> ParseTopLevelExpr()
+std::shared_ptr<FunctionAST> ParseTopLevelExpr()
 {
 	if (auto E = ParseBlockExpression()) {
 		// Make an anonymous proto.
-		auto Proto = std::make_unique<PrototypeAST>("__anon_expr",
+		auto Proto = std::make_shared<PrototypeAST>("__anon_expr",
 			std::vector<std::string>());
-		return std::make_unique<FunctionAST>(std::move(Proto), std::move(E));
+		return std::make_shared<FunctionAST>(std::move(Proto), std::move(E));
 	}
 	return nullptr;
 }

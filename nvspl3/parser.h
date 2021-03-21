@@ -58,10 +58,10 @@ public:
 /// UnaryExprAST - Expression class for a unary operator.
 class UnaryExprAST : public ExprAST {
     char Opcode;
-    std::unique_ptr<ExprAST> Operand;
+    std::shared_ptr<ExprAST> Operand;
 
 public:
-    UnaryExprAST(char Opcode, std::unique_ptr<ExprAST> Operand)
+    UnaryExprAST(char Opcode, std::shared_ptr<ExprAST> Operand)
         : Opcode(Opcode), Operand(std::move(Operand)) {}
     Value execute() override;
 };
@@ -69,11 +69,11 @@ public:
 /// BinaryExprAST - Expression class for a binary operator.
 class BinaryExprAST : public ExprAST {
     std::string Op;
-    std::unique_ptr<ExprAST> LHS, RHS;
+    std::shared_ptr<ExprAST> LHS, RHS;
 
 public:
-    BinaryExprAST(std::string Op, std::unique_ptr<ExprAST> LHS,
-        std::unique_ptr<ExprAST> RHS)
+    BinaryExprAST(std::string Op, std::shared_ptr<ExprAST> LHS,
+        std::shared_ptr<ExprAST> RHS)
         : Op(Op), LHS(std::move(LHS)), RHS(std::move(RHS)) {}
     Value execute() override;
 };
@@ -81,22 +81,22 @@ public:
 /// CallExprAST - Expression class for function calls.
 class CallExprAST : public ExprAST {
     std::string Callee;
-    std::vector<std::unique_ptr<ExprAST>> Args;
+    std::vector<std::shared_ptr<ExprAST>> Args;
 
 public:
     CallExprAST(const std::string& Callee,
-        std::vector<std::unique_ptr<ExprAST>> Args)
+        std::vector<std::shared_ptr<ExprAST>> Args)
         : Callee(Callee), Args(std::move(Args)) {}
     Value execute() override;
 };
 
 /// IfExprAST - Expression class for if/then/else.
 class IfExprAST : public ExprAST {
-    std::unique_ptr<ExprAST> Cond, Then, Else;
+    std::shared_ptr<ExprAST> Cond, Then, Else;
 
 public:
-    IfExprAST(std::unique_ptr<ExprAST> Cond, std::unique_ptr<ExprAST> Then,
-        std::unique_ptr<ExprAST> Else)
+    IfExprAST(std::shared_ptr<ExprAST> Cond, std::shared_ptr<ExprAST> Then,
+        std::shared_ptr<ExprAST> Else)
         : Cond(std::move(Cond)), Then(std::move(Then)), Else(std::move(Else)) {}
     Value execute() override;
 };
@@ -104,12 +104,12 @@ public:
 /// ForExprAST - Expression class for for/in.
 class ForExprAST : public ExprAST {
     std::string VarName;
-    std::unique_ptr<ExprAST> Start, End, Step, Body;
+    std::shared_ptr<ExprAST> Start, End, Step, Body;
 
 public:
-    ForExprAST(const std::string& VarName, std::unique_ptr<ExprAST> Start,
-        std::unique_ptr<ExprAST> End, std::unique_ptr<ExprAST> Step,
-        std::unique_ptr<ExprAST> Body)
+    ForExprAST(const std::string& VarName, std::shared_ptr<ExprAST> Start,
+        std::shared_ptr<ExprAST> End, std::shared_ptr<ExprAST> Step,
+        std::shared_ptr<ExprAST> Body)
         : VarName(VarName), Start(std::move(Start)), End(std::move(End)),
         Step(std::move(Step)), Body(std::move(Body)) {}
     Value execute() override;
@@ -117,23 +117,23 @@ public:
 
 /// VarExprAST - Expression class for var
 class VarExprAST : public ExprAST {
-    std::vector<std::pair<std::string, std::unique_ptr<ExprAST>>> VarNames;
-    std::unique_ptr<ExprAST> Body;
+    std::vector<std::pair<std::string, std::shared_ptr<ExprAST>>> VarNames;
+    std::shared_ptr<ExprAST> Body;
 
 public:
     VarExprAST(
-        std::vector<std::pair<std::string, std::unique_ptr<ExprAST>>> VarNames,
-        std::unique_ptr<ExprAST> Body)
+        std::vector<std::pair<std::string, std::shared_ptr<ExprAST>>> VarNames,
+        std::shared_ptr<ExprAST> Body)
         : VarNames(std::move(VarNames)), Body(std::move(Body)) {}
     Value execute() override;
 };
 
 /// BlockExprAST - Sequence of expressions
 class BlockExprAST : public ExprAST {
-    std::vector<std::unique_ptr<ExprAST>> Expressions;
+    std::vector<std::shared_ptr<ExprAST>> Expressions;
 
 public:
-    BlockExprAST(std::vector<std::unique_ptr<ExprAST>> Expressions)
+    BlockExprAST(std::vector<std::shared_ptr<ExprAST>> Expressions)
         : Expressions(std::move(Expressions)) {}
     Value execute() override;
 };
@@ -167,18 +167,18 @@ public:
 
     unsigned getBinaryPrecedence() const { return Precedence; }
     Value execute();
-    int getArgsSize() const { return Args.size(); }
+    const int getArgsSize() const { return Args.size(); }
     const std::vector<std::string>& getArgs() const { return Args; }
 };
 
 /// FunctionAST - This class represents a function definition itself.
 class FunctionAST {
-    std::unique_ptr<PrototypeAST> Proto;
-    std::unique_ptr<ExprAST> Body;
+    std::shared_ptr<PrototypeAST> Proto;
+    std::shared_ptr<ExprAST> Body;
 
 public:
-    FunctionAST(std::unique_ptr<PrototypeAST> Proto,
-        std::unique_ptr<ExprAST> Body)
+    FunctionAST(std::shared_ptr<PrototypeAST> Proto,
+        std::shared_ptr<ExprAST> Body)
         : Proto(std::move(Proto)), Body(std::move(Body)) {}
     Value execute(std::vector<Value> Ops);
     int arg_size() const { return Proto->getArgsSize(); }
@@ -192,34 +192,34 @@ int getNextToken();
 
 int GetTokPrecedence(std::string Op);
 
-std::unique_ptr<ExprAST> LogError(const char* Str);
+std::shared_ptr<ExprAST> LogError(const char* Str);
 
-std::unique_ptr<PrototypeAST> LogErrorP(const char* Str);
+std::shared_ptr<PrototypeAST> LogErrorP(const char* Str);
 
-std::unique_ptr<ExprAST> ParseNumberExpr();
+std::shared_ptr<ExprAST> ParseNumberExpr();
 
-std::unique_ptr<ExprAST> ParseParenExpr();
+std::shared_ptr<ExprAST> ParseParenExpr();
 
-std::unique_ptr<ExprAST> ParseIdentifierExpr();
+std::shared_ptr<ExprAST> ParseIdentifierExpr();
 
-std::unique_ptr<ExprAST> ParseIfExpr();
+std::shared_ptr<ExprAST> ParseIfExpr();
 
-std::unique_ptr<ExprAST> ParseForExpr();
+std::shared_ptr<ExprAST> ParseForExpr();
 
-std::unique_ptr<ExprAST> ParseVarExpr();
+std::shared_ptr<ExprAST> ParseVarExpr();
 
-std::unique_ptr<ExprAST> ParsePrimary();
+std::shared_ptr<ExprAST> ParsePrimary();
 
-std::unique_ptr<ExprAST> ParseUnary();
+std::shared_ptr<ExprAST> ParseUnary();
 
-std::unique_ptr<ExprAST> ParseBinOpRHS(int ExprPrec, std::unique_ptr<ExprAST> LHS);
+std::shared_ptr<ExprAST> ParseBinOpRHS(int ExprPrec, std::shared_ptr<ExprAST> LHS);
 
-std::unique_ptr<ExprAST> ParseExpression();
+std::shared_ptr<ExprAST> ParseExpression();
 
-std::unique_ptr<ExprAST> ParseBlockExpression();
+std::shared_ptr<ExprAST> ParseBlockExpression();
 
-std::unique_ptr<PrototypeAST> ParsePrototype();
+std::shared_ptr<PrototypeAST> ParsePrototype();
 
-std::unique_ptr<FunctionAST> ParseDefinition();
+std::shared_ptr<FunctionAST> ParseDefinition();
 
-std::unique_ptr<FunctionAST> ParseTopLevelExpr();
+std::shared_ptr<FunctionAST> ParseTopLevelExpr();

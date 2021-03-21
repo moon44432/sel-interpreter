@@ -4,7 +4,7 @@
 #include <iostream>
 
 static std::map<std::string, Value> NamedValues;
-static std::map<std::string, FunctionAST*> Functions;
+static std::map<std::string, std::shared_ptr<FunctionAST>> Functions;
 
 Value LogErrorV(const char* Str) {
     LogError(Str);
@@ -41,6 +41,7 @@ Value UnaryExprAST::execute()
         return RetVal;
     }
 
+    // Last character까지 보고 정의된 binop이면 건너뛰기
     Value RetVal;
     switch (Opcode)
     {
@@ -58,7 +59,7 @@ Value UnaryExprAST::execute()
         break;
     }
 
-    FunctionAST* F = Functions[(std::string("unary") + Opcode)];
+    std::shared_ptr<FunctionAST> F = Functions[(std::string("unary") + Opcode)];
     if (!F)
         return LogErrorV("Unknown unary operator");
 
@@ -156,7 +157,7 @@ Value BinaryExprAST::execute() {
 
     // If it wasn't a builtin binary operator, it must be a user defined one. Emit
     // a call to it.
-    FunctionAST* F = Functions[(std::string("binary") + Op)];
+    std::shared_ptr<FunctionAST> F = Functions[(std::string("binary") + Op)];
     assert(F && "binary operator not found!");
 
     std::vector<Value> Ops;
@@ -168,7 +169,7 @@ Value BinaryExprAST::execute() {
 
 Value CallExprAST::execute() {
     // Look up the name in the global module table.
-    FunctionAST* CalleeF = Functions[Callee];
+    std::shared_ptr<FunctionAST> CalleeF = Functions[Callee];
     if (!CalleeF)
         return LogErrorV("Unknown function referenced");
 
@@ -281,8 +282,6 @@ Value PrototypeAST::execute()
 
 Value FunctionAST::execute(std::vector<Value> Ops)
 {
-    Functions[Proto->getName()] = this;
-
     // If this is an operator, install it.
     if (Proto->isBinaryOp())
         BinopPrecedence[Proto->getOperatorName()] = Proto->getBinaryPrecedence();
@@ -311,9 +310,9 @@ void HandleDefinition()
 
         unsigned Idx = 0;
         for (auto& Arg : FnAST->getFuncArgs())
-            NamedValues[Arg] = std::move(std::make_unique<Value>(0.0).get());
+            NamedValues[Arg] = std::move(std::make_shared<Value>(0.0).get());
 
-        Functions[FnAST->getFuncName()] = FnAST.get();
+        Functions[FnAST->getFuncName()] = FnAST;
     }
     else
     {
