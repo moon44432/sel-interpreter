@@ -33,7 +33,7 @@ public:
 class ExprAST {
 public:
     virtual ~ExprAST() = default;
-    virtual Value execute() = 0;
+    virtual Value execute(int lvl) = 0;
 };
 
 /// NumberExprAST - Expression class for numeric literals like "1.0".
@@ -42,7 +42,7 @@ class NumberExprAST : public ExprAST {
 
 public:
     NumberExprAST(double Val) : Val(Val) {}
-    Value execute() override;
+    Value execute(int lvl) override;
 };
 
 /// VariableExprAST - Expression class for referencing a variable, like "a".
@@ -52,7 +52,7 @@ class VariableExprAST : public ExprAST {
 public:
     VariableExprAST(const std::string& Name) : Name(Name) {}
     const std::string& getName() const { return Name; }
-    Value execute() override;
+    Value execute(int lvl) override;
 };
 
 /// UnaryExprAST - Expression class for a unary operator.
@@ -63,7 +63,7 @@ class UnaryExprAST : public ExprAST {
 public:
     UnaryExprAST(char Opcode, std::shared_ptr<ExprAST> Operand)
         : Opcode(Opcode), Operand(std::move(Operand)) {}
-    Value execute() override;
+    Value execute(int lvl) override;
 };
 
 /// BinaryExprAST - Expression class for a binary operator.
@@ -75,7 +75,7 @@ public:
     BinaryExprAST(std::string Op, std::shared_ptr<ExprAST> LHS,
         std::shared_ptr<ExprAST> RHS)
         : Op(Op), LHS(std::move(LHS)), RHS(std::move(RHS)) {}
-    Value execute() override;
+    Value execute(int lvl) override;
 };
 
 /// CallExprAST - Expression class for function calls.
@@ -87,7 +87,7 @@ public:
     CallExprAST(const std::string& Callee,
         std::vector<std::shared_ptr<ExprAST>> Args)
         : Callee(Callee), Args(std::move(Args)) {}
-    Value execute() override;
+    Value execute(int lvl) override;
 };
 
 /// IfExprAST - Expression class for if/then/else.
@@ -98,7 +98,7 @@ public:
     IfExprAST(std::shared_ptr<ExprAST> Cond, std::shared_ptr<ExprAST> Then,
         std::shared_ptr<ExprAST> Else)
         : Cond(std::move(Cond)), Then(std::move(Then)), Else(std::move(Else)) {}
-    Value execute() override;
+    Value execute(int lvl) override;
 };
 
 /// ForExprAST - Expression class for for/in.
@@ -112,7 +112,7 @@ public:
         std::shared_ptr<ExprAST> Body)
         : VarName(VarName), Start(std::move(Start)), End(std::move(End)),
         Step(std::move(Step)), Body(std::move(Body)) {}
-    Value execute() override;
+    Value execute(int lvl) override;
 };
 
 /// VarExprAST - Expression class for var
@@ -125,7 +125,7 @@ public:
         std::vector<std::pair<std::string, std::shared_ptr<ExprAST>>> VarNames,
         std::shared_ptr<ExprAST> Body)
         : VarNames(std::move(VarNames)), Body(std::move(Body)) {}
-    Value execute() override;
+    Value execute(int lvl) override;
 };
 
 /// BlockExprAST - Sequence of expressions
@@ -135,7 +135,7 @@ class BlockExprAST : public ExprAST {
 public:
     BlockExprAST(std::vector<std::shared_ptr<ExprAST>> Expressions)
         : Expressions(std::move(Expressions)) {}
-    Value execute() override;
+    Value execute(int lvl) override;
 };
 
 /// PrototypeAST - This class represents the "prototype" for a function,
@@ -166,7 +166,7 @@ public:
     }
 
     unsigned getBinaryPrecedence() const { return Precedence; }
-    Value execute();
+    Value execute(int lvl);
     const int getArgsSize() const { return Args.size(); }
     const std::vector<std::string>& getArgs() const { return Args; }
 };
@@ -180,7 +180,7 @@ public:
     FunctionAST(std::shared_ptr<PrototypeAST> Proto,
         std::shared_ptr<ExprAST> Body)
         : Proto(std::move(Proto)), Body(std::move(Body)) {}
-    Value execute(std::vector<Value> Ops);
+    Value execute(std::vector<Value> Ops, int lvl);
     int arg_size() const { return Proto->getArgsSize(); }
     const std::string getFuncName() const { return Proto->getName(); }
     const std::vector<std::string> getFuncArgs() const { return Proto->getArgs(); }

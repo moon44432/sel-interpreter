@@ -3,7 +3,7 @@
 #include "execute.h"
 #include <iostream>
 
-static std::map<std::string, Value> NamedValues;
+static std::vector<std::map<std::string, Value>> NamedValues(1024);
 static std::map<std::string, std::shared_ptr<FunctionAST>> Functions;
 
 Value LogErrorV(const char* Str) {
@@ -12,29 +12,27 @@ Value LogErrorV(const char* Str) {
     return RetVal;
 }
 
-Value NumberExprAST::execute()
+Value NumberExprAST::execute(int lvl)
 {
     return Val;
 }
 
-Value VariableExprAST::execute()
+Value VariableExprAST::execute(int lvl)
 {
     // Look this variable up in the function.
-    if (NamedValues.find(Name) != NamedValues.end())
+    for (int i = lvl; i >= 0; i--)
     {
-        Value RetVal(NamedValues[Name].getVal());
-        return RetVal;
+        if (NamedValues[i].find(Name) != NamedValues[i].end())
+            return NamedValues[i][Name];
     }
-    else
-    {
-        Value RetVal(true);
-        return RetVal;
-    }
+
+    Value RetVal(true);
+    return RetVal;
 }
 
-Value UnaryExprAST::execute()
+Value UnaryExprAST::execute(int lvl)
 {
-    Value OperandV = Operand->execute();
+    Value OperandV = Operand->execute(lvl);
     if (OperandV.isEmpty())
     {
         Value RetVal(true);
@@ -58,7 +56,7 @@ Value UnaryExprAST::execute()
         return RetVal;
         break;
     }
-
+    /*
     std::shared_ptr<FunctionAST> F = Functions[(std::string("unary") + Opcode)];
     if (!F)
         return LogErrorV("Unknown unary operator");
@@ -67,9 +65,10 @@ Value UnaryExprAST::execute()
     Op.push_back(OperandV);
 
     return F->execute(Op);
+    */
 }
 
-Value BinaryExprAST::execute() {
+Value BinaryExprAST::execute(int lvl) {
     // Special case '=' because we don't want to emit the LHS as an expression.
     if (Op == "=") {
         // Assignment requires the LHS to be an identifier.
@@ -77,7 +76,7 @@ Value BinaryExprAST::execute() {
         if (!LHSE)
             return LogErrorV("destination of '=' must be a variable");
         // execute the RHS.
-        Value Val = RHS->execute();
+        Value Val = RHS->execute(lvl);
         if (Val.isEmpty())
         {
             Value RetVal(true);
@@ -85,19 +84,24 @@ Value BinaryExprAST::execute() {
         }
 
         // Look up the name.
-        
-        if (NamedValues.find(LHSE->getName()) != NamedValues.end())
+        bool found = false;
+        for (int i = lvl; i >= 0; i--)
         {
-            Value * Variable = &NamedValues[LHSE->getName()];
-            Variable->updateVal(Val.getVal());
+            if (NamedValues[i].find(LHSE->getName()) != NamedValues[i].end())
+            {
+                NamedValues[i][LHSE->getName()] = Val;
+                found = true;
+                break;
+            }
         }
-        else NamedValues[LHSE->getName()] = Val; // add new var
+        if (!found)
+            NamedValues[lvl][LHSE->getName()] = Val;
 
         return Val;
     }
 
-    Value L = LHS->execute();
-    Value R = RHS->execute();
+    Value L = LHS->execute(lvl);
+    Value R = RHS->execute(lvl);
     std::cout << L.getVal() << ' ' << R.getVal() << std::endl;
     if (L.isEmpty() || R.isEmpty())
     {
@@ -157,6 +161,7 @@ Value BinaryExprAST::execute() {
 
     // If it wasn't a builtin binary operator, it must be a user defined one. Emit
     // a call to it.
+    /*
     std::shared_ptr<FunctionAST> F = Functions[(std::string("binary") + Op)];
     assert(F && "binary operator not found!");
 
@@ -165,9 +170,10 @@ Value BinaryExprAST::execute() {
     Ops.push_back(R);
 
     return F->execute(Ops);
+    */
 }
 
-Value CallExprAST::execute() {
+Value CallExprAST::execute(int lvl) {
     // Look up the name in the global module table.
     std::shared_ptr<FunctionAST> CalleeF = Functions[Callee];
     if (!CalleeF)
@@ -179,18 +185,19 @@ Value CallExprAST::execute() {
 
     std::vector<Value> ArgsV;
     for (unsigned i = 0, e = Args.size(); i != e; ++i) {
-        ArgsV.push_back(Args[i]->execute());
+        ArgsV.push_back(Args[i]->execute(lvl));
         if (ArgsV.back().isEmpty())
         {
             Value RetVal(true);
             return RetVal;
         }
     }
-    return CalleeF->execute(ArgsV);
+    return CalleeF->execute(ArgsV, lvl);
 }
 
-Value IfExprAST::execute() {
-    Value CondV = Cond->execute();
+Value IfExprAST::execute(int lvl)
+{
+    Value CondV = Cond->execute(lvl);
     if (CondV.isEmpty())
     {
         Value RetVal(true);
@@ -200,41 +207,59 @@ Value IfExprAST::execute() {
     if ((bool)(CondV.getVal()))
     {
         std::cout << "then" << std::endl;
-        Value ThenV = Then->execute();
+        Value ThenV = Then->execute(lvl + 1);
         if (ThenV.isEmpty())
         {
             Value RetVal(true);
             return RetVal;
         }
+        NamedValues[lvl + 1].clear();
         return ThenV;
     }
     else
     {
         std::cout << "else" << std::endl;
-        Value ElseV = Else->execute();
+        Value ElseV = Else->execute(lvl + 1);
         if (ElseV.isEmpty())
         {
             Value RetVal(true);
             return RetVal;
         }
+        NamedValues[lvl + 1].clear();
         return ElseV;
     }
 }
 
-Value ForExprAST::execute()
+Value ForExprAST::execute(int lvl)
 {
-    Value StartVal = Start->execute();
+    Value StartVal = Start->execute(lvl);
     if (StartVal.isEmpty())
     {
         Value RetVal(true);
         return RetVal;
     }
-    NamedValues[VarName] = StartVal;
+    bool found = false;
+    int StartValLvl;
+    for (int i = lvl; i >= 0; i--)
+    {
+        if (NamedValues[i].find(VarName) != NamedValues[i].end())
+        {
+            NamedValues[i][VarName] = StartVal;
+            StartValLvl = i;
+            found = true;
+            break;
+        }
+    }
+    if (!found)
+    {
+        NamedValues[lvl][VarName] = StartVal;
+        StartValLvl = lvl;
+    }
 
     // Emit the step value.
     Value StepVal(1.0);
     if (Step) {
-        StepVal = Step->execute();
+        StepVal = Step->execute(lvl);
         if (StepVal.isEmpty())
         {
             Value RetVal(true);
@@ -244,7 +269,7 @@ Value ForExprAST::execute()
 
     while (true)
     {
-        Value EndCond = End->execute();
+        Value EndCond = End->execute(lvl);
         if (EndCond.isEmpty())
         {
             Value RetVal(true);
@@ -252,35 +277,38 @@ Value ForExprAST::execute()
         }
         if (!(bool)EndCond.getVal()) break;
 
-        Value BodyExpr = Body->execute();
+        Value BodyExpr = Body->execute(lvl + 1);
         if (BodyExpr.isEmpty())
         {
             Value RetVal(true);
             return RetVal;
         }
 
-        NamedValues[VarName].updateVal(NamedValues[VarName].getVal() + StepVal.getVal());
+        NamedValues[StartValLvl][VarName].updateVal(NamedValues[StartValLvl][VarName].getVal() + StepVal.getVal());
     }
+    NamedValues[lvl + 1].clear();
+
     Value RetVal(0.0);
     return RetVal;
 }
 
-Value BlockExprAST::execute()
+Value BlockExprAST::execute(int lvl)
 {
     Value RetVal(true);
     for (auto& Expr : Expressions)
-        RetVal = Expr->execute();
+        RetVal = Expr->execute(lvl + 1);
 
+    NamedValues[lvl + 1].clear();
     return RetVal;
 }
 
-Value PrototypeAST::execute()
+Value PrototypeAST::execute(int lvl)
 {
     Value RetVal(0.0);
     return RetVal;
 }
 
-Value FunctionAST::execute(std::vector<Value> Ops)
+Value FunctionAST::execute(std::vector<Value> Ops, int lvl)
 {
     // If this is an operator, install it.
     if (Proto->isBinaryOp())
@@ -288,9 +316,9 @@ Value FunctionAST::execute(std::vector<Value> Ops)
 
     auto& Arg = Proto->getArgs();
     for (int i = 0; i < Proto->getArgsSize(); i++)
-        NamedValues[Arg[i]].updateVal(Ops[i].getVal());
+        NamedValues[lvl + 1][Arg[i]] = Ops[i].getVal();
 
-    Value RetVal = Body->execute();
+    Value RetVal = Body->execute(lvl + 1);
     if (!RetVal.isEmpty())
         return RetVal;
 
@@ -308,10 +336,6 @@ void HandleDefinition()
         fprintf(stderr, "Read function definition:");
         fprintf(stderr, "\n");
 
-        unsigned Idx = 0;
-        for (auto& Arg : FnAST->getFuncArgs())
-            NamedValues[Arg] = std::move(std::make_shared<Value>(0.0).get());
-
         Functions[FnAST->getFuncName()] = FnAST;
     }
     else
@@ -326,7 +350,7 @@ void HandleTopLevelExpression()
     // Evaluate a top-level expression into an anonymous function.
     if (auto FnAST = ParseTopLevelExpr())
     {
-        Value RetVal = FnAST->execute(std::vector<Value>());
+        Value RetVal = FnAST->execute(std::vector<Value>(), 0);
         if (!RetVal.isEmpty())
         {
             double FP = RetVal.getVal();
