@@ -101,7 +101,7 @@ public:
     Value execute(int lvl) override;
 };
 
-/// ForExprAST - Expression class for for/in.
+/// ForExprAST - Expression class for for.
 class ForExprAST : public ExprAST {
     std::string VarName;
     std::shared_ptr<ExprAST> Start, End, Step, Body;
@@ -125,6 +125,17 @@ public:
         std::vector<std::pair<std::string, std::shared_ptr<ExprAST>>> VarNames,
         std::shared_ptr<ExprAST> Body)
         : VarNames(std::move(VarNames)), Body(std::move(Body)) {}
+    Value execute(int lvl) override;
+};
+
+/// RepeatExprAST - Expression class for rept.
+class RepeatExprAST : public ExprAST {
+    std::shared_ptr<ExprAST> IterNum;
+    std::shared_ptr<ExprAST> Body;
+
+public:
+    RepeatExprAST(std::shared_ptr<ExprAST> IterNum, std::shared_ptr<ExprAST> Body)
+        : IterNum(std::move(IterNum)), Body(std::move(Body)) {}
     Value execute(int lvl) override;
 };
 

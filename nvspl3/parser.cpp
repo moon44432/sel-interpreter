@@ -193,6 +193,29 @@ std::shared_ptr<ExprAST> ParseForExpr()
 		std::move(Step), std::move(Body));
 }
 
+std::shared_ptr<ExprAST> ParseRepeatExpr()
+{
+	getNextToken(); // eat the rept.
+
+	if (CurTok != '(')
+		return LogError("expected '(' after rept");
+	getNextToken();
+
+	auto IterNum = ParseExpression();
+	if (!IterNum)
+		return nullptr;
+
+	if (CurTok != ')')
+		return LogError("expected ')'");
+	getNextToken(); // eat ')'.
+
+	auto Body = ParseBlockExpression();
+	if (!Body)
+		return nullptr;
+
+	return std::make_shared<RepeatExprAST>(std::move(IterNum), std::move(Body));
+}
+
 
 /// primary
 ///   ::= identifierexpr
@@ -214,6 +237,8 @@ std::shared_ptr<ExprAST> ParsePrimary()
 		return ParseForExpr();
 	case tok_if:
 		return ParseIfExpr();
+	case tok_repeat:
+		return ParseRepeatExpr();
 	case '(': // must be the last one (for, var, if, etc also use '(')
 		return ParseParenExpr();
 	}
@@ -396,7 +421,7 @@ std::shared_ptr<PrototypeAST> ParsePrototype()
 		getNextToken();
 		if (CurTok == ')') break;
 		if (CurTok != ',')
-			return LogErrorP("Expected ','");
+			return LogErrorP("Expected ',' or ')'");
 	}
 
 	std::cout << ArgNames.size() << std::endl;

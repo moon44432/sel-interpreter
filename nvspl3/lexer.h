@@ -18,18 +18,19 @@ enum Token {
     tok_then = -7,
     tok_else = -8,
     tok_for = -9,
-    // tok_in = -10,
+    tok_while = -10,
+    tok_repeat = -11,
 
     // operators
-    tok_binary = -11,
-    tok_unary = -12,
+    tok_binary = -30,
+    tok_unary = -31,
 
     // var definition
-    tok_var = -13,
+    tok_var = -35,
 
     // block
-    tok_openblock = -14,
-    tok_closeblock = -15,
+    tok_openblock = -90,
+    tok_closeblock = -91,
 };
 
 extern std::string IdentifierStr;

@@ -43,6 +43,8 @@ int gettok()
             return tok_unary;
         if (IdentifierStr == "var")
             return tok_var;
+        if (IdentifierStr == "rept")
+            return tok_repeat;
         return tok_identifier;
     }
 

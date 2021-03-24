@@ -3,7 +3,7 @@
 #include "execute.h"
 #include <iostream>
 
-static std::vector<std::map<std::string, Value>> NamedValues(1024);
+static std::vector<std::map<std::string, Value>> NamedValues(65536);
 static std::map<std::string, std::shared_ptr<FunctionAST>> Functions;
 
 Value LogErrorV(const char* Str) {
@@ -102,7 +102,7 @@ Value BinaryExprAST::execute(int lvl) {
 
     Value L = LHS->execute(lvl);
     Value R = RHS->execute(lvl);
-    std::cout << L.getVal() << ' ' << R.getVal() << std::endl;
+    // std::cout << L.getVal() << ' ' << R.getVal() << std::endl;
     if (L.isEmpty() || R.isEmpty())
     {
         Value RetVal(true);
@@ -206,7 +206,7 @@ Value IfExprAST::execute(int lvl)
 
     if ((bool)(CondV.getVal()))
     {
-        std::cout << "then" << std::endl;
+        // std::cout << "then" << std::endl;
         Value ThenV = Then->execute(lvl + 1);
         if (ThenV.isEmpty())
         {
@@ -218,7 +218,7 @@ Value IfExprAST::execute(int lvl)
     }
     else
     {
-        std::cout << "else" << std::endl;
+        // std::cout << "else" << std::endl;
         Value ElseV = Else->execute(lvl + 1);
         if (ElseV.isEmpty())
         {
@@ -288,6 +288,28 @@ Value ForExprAST::execute(int lvl)
     }
     NamedValues[lvl + 1].clear();
 
+    Value RetVal(0.0);
+    return RetVal;
+}
+
+Value RepeatExprAST::execute(int lvl)
+{
+    Value Iter = IterNum->execute(lvl);
+    if (Iter.isEmpty())
+    {
+        Value RetVal(true);
+        return RetVal;
+    }
+   
+    for (int i = 0; i < (unsigned int)(Iter.getVal()); i++)
+    {
+        Value BodyExpr = Body->execute(lvl + 1);
+        if (BodyExpr.isEmpty())
+        {
+            Value RetVal(true);
+            return RetVal;
+        }
+    }
     Value RetVal(0.0);
     return RetVal;
 }
