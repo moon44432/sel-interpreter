@@ -3,7 +3,7 @@
 #include "execute.h"
 #include <iostream>
 
-static std::vector<std::map<std::string, int>> VarTable(65536);
+static std::vector<std::map<std::string, int>> VarTable;
 static std::map<std::string, std::shared_ptr<FunctionAST>> Functions;
 static Memory StackMemory;
 
@@ -209,6 +209,8 @@ Value IfExprAST::execute(int lvl, int stackIdx)
     }
 
     int StartIdx = StackMemory.getSize();
+    std::map<std::string, int> Table;
+    VarTable.push_back(Table);
 
     if ((bool)(CondV.getVal()))
     {
@@ -219,7 +221,7 @@ Value IfExprAST::execute(int lvl, int stackIdx)
             Value RetVal(true);
             return RetVal;
         }
-        VarTable[lvl + 1].clear();
+        VarTable.pop_back();
         StackMemory.quickDelete(StartIdx);
         return ThenV;
     }
@@ -232,7 +234,7 @@ Value IfExprAST::execute(int lvl, int stackIdx)
             Value RetVal(true);
             return RetVal;
         }
-        VarTable[lvl + 1].clear();
+        VarTable.pop_back();
         StackMemory.quickDelete(StartIdx);
         return ElseV;
     }
@@ -277,6 +279,8 @@ Value ForExprAST::execute(int lvl, int stackIdx)
     }
 
     int StartIdx = StackMemory.getSize();
+    std::map<std::string, int> Table;
+    VarTable.push_back(Table);
 
     while (true)
     {
@@ -298,7 +302,7 @@ Value ForExprAST::execute(int lvl, int stackIdx)
         StackMemory.setValue(VarTable[StartValLvl][VarName],
             Value(StackMemory.getValue(VarTable[StartValLvl][VarName]).getVal() + StepVal.getVal()));
     }
-    VarTable[lvl + 1].clear();
+    VarTable.pop_back();
     StackMemory.quickDelete(StartIdx);
 
     Value RetVal(0.0);
@@ -331,10 +335,13 @@ Value BlockExprAST::execute(int lvl, int stackIdx)
 {
     Value RetVal(true);
     int StartIdx = StackMemory.getSize();
+    std::map<std::string, int> Table;
+    VarTable.push_back(Table);
+
     for (auto& Expr : Expressions)
         RetVal = Expr->execute(lvl + 1, StartIdx);
 
-    VarTable[lvl + 1].clear();
+    VarTable.pop_back();
     StackMemory.quickDelete(StartIdx);
     return RetVal;
 }
@@ -352,6 +359,8 @@ Value FunctionAST::execute(std::vector<Value> Ops, int lvl, int stackIdx)
         BinopPrecedence[Proto->getOperatorName()] = Proto->getBinaryPrecedence();
 
     int StartIdx = StackMemory.getSize();
+    std::map<std::string, int> Table;
+    VarTable.push_back(Table);
 
     auto& Arg = Proto->getArgs();
     for (int i = 0; i < Proto->getArgsSize(); i++)
@@ -364,7 +373,7 @@ Value FunctionAST::execute(std::vector<Value> Ops, int lvl, int stackIdx)
     if (!RetVal.isEmpty())
         return RetVal;
 
-    VarTable[lvl + 1].clear();
+    VarTable.pop_back();
     StackMemory.quickDelete(StartIdx);
 
     if (Proto->isBinaryOp())
@@ -395,6 +404,9 @@ void HandleTopLevelExpression()
     // Evaluate a top-level expression into an anonymous function.
     if (auto FnAST = ParseTopLevelExpr())
     {
+        std::map<std::string, int> Table;
+        VarTable.push_back(Table);
+
         Value RetVal = FnAST->execute(std::vector<Value>(), 0, 0);
         if (!RetVal.isEmpty())
         {
