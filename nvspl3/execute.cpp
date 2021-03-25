@@ -3,8 +3,9 @@
 #include "execute.h"
 #include <iostream>
 
-static std::vector<std::map<std::string, Value>> NamedValues(65536);
+static std::vector<std::map<std::string, int>> VarTable(65536);
 static std::map<std::string, std::shared_ptr<FunctionAST>> Functions;
+static Memory StackMemory;
 
 Value LogErrorV(const char* Str) {
     LogError(Str);
@@ -12,27 +13,27 @@ Value LogErrorV(const char* Str) {
     return RetVal;
 }
 
-Value NumberExprAST::execute(int lvl)
+Value NumberExprAST::execute(int lvl, int stackIdx)
 {
     return Val;
 }
 
-Value VariableExprAST::execute(int lvl)
+Value VariableExprAST::execute(int lvl, int stackIdx)
 {
     // Look this variable up in the function.
     for (int i = lvl; i >= 0; i--)
     {
-        if (NamedValues[i].find(Name) != NamedValues[i].end())
-            return NamedValues[i][Name];
+        if (VarTable[i].find(Name) != VarTable[i].end())
+            return StackMemory.getValue(VarTable[i][Name]);
     }
 
     Value RetVal(true);
     return RetVal;
 }
 
-Value UnaryExprAST::execute(int lvl)
+Value UnaryExprAST::execute(int lvl, int stackIdx)
 {
-    Value OperandV = Operand->execute(lvl);
+    Value OperandV = Operand->execute(lvl, stackIdx);
     if (OperandV.isEmpty())
     {
         Value RetVal(true);
@@ -68,7 +69,7 @@ Value UnaryExprAST::execute(int lvl)
     */
 }
 
-Value BinaryExprAST::execute(int lvl) {
+Value BinaryExprAST::execute(int lvl, int stackIdx) {
     // Special case '=' because we don't want to emit the LHS as an expression.
     if (Op == "=") {
         // Assignment requires the LHS to be an identifier.
@@ -76,7 +77,7 @@ Value BinaryExprAST::execute(int lvl) {
         if (!LHSE)
             return LogErrorV("destination of '=' must be a variable");
         // execute the RHS.
-        Value Val = RHS->execute(lvl);
+        Value Val = RHS->execute(lvl, stackIdx);
         if (Val.isEmpty())
         {
             Value RetVal(true);
@@ -87,21 +88,24 @@ Value BinaryExprAST::execute(int lvl) {
         bool found = false;
         for (int i = lvl; i >= 0; i--)
         {
-            if (NamedValues[i].find(LHSE->getName()) != NamedValues[i].end())
+            if (VarTable[i].find(LHSE->getName()) != VarTable[i].end())
             {
-                NamedValues[i][LHSE->getName()] = Val;
+                StackMemory.setValue(VarTable[i][LHSE->getName()], Val);
                 found = true;
                 break;
             }
         }
         if (!found)
-            NamedValues[lvl][LHSE->getName()] = Val;
+        {
+            int idx = StackMemory.addValue(Val);
+            VarTable[lvl][LHSE->getName()] = idx;
+        }
 
         return Val;
     }
 
-    Value L = LHS->execute(lvl);
-    Value R = RHS->execute(lvl);
+    Value L = LHS->execute(lvl, stackIdx);
+    Value R = RHS->execute(lvl, stackIdx);
     // std::cout << L.getVal() << ' ' << R.getVal() << std::endl;
     if (L.isEmpty() || R.isEmpty())
     {
@@ -173,7 +177,7 @@ Value BinaryExprAST::execute(int lvl) {
     */
 }
 
-Value CallExprAST::execute(int lvl) {
+Value CallExprAST::execute(int lvl, int stackIdx) {
     // Look up the name in the global module table.
     std::shared_ptr<FunctionAST> CalleeF = Functions[Callee];
     if (!CalleeF)
@@ -185,54 +189,58 @@ Value CallExprAST::execute(int lvl) {
 
     std::vector<Value> ArgsV;
     for (unsigned i = 0, e = Args.size(); i != e; ++i) {
-        ArgsV.push_back(Args[i]->execute(lvl));
+        ArgsV.push_back(Args[i]->execute(lvl, stackIdx));
         if (ArgsV.back().isEmpty())
         {
             Value RetVal(true);
             return RetVal;
         }
     }
-    return CalleeF->execute(ArgsV, lvl);
+    return CalleeF->execute(ArgsV, lvl, stackIdx);
 }
 
-Value IfExprAST::execute(int lvl)
+Value IfExprAST::execute(int lvl, int stackIdx)
 {
-    Value CondV = Cond->execute(lvl);
+    Value CondV = Cond->execute(lvl, stackIdx);
     if (CondV.isEmpty())
     {
         Value RetVal(true);
         return RetVal;
     }
 
+    int StartIdx = StackMemory.getSize();
+
     if ((bool)(CondV.getVal()))
     {
         // std::cout << "then" << std::endl;
-        Value ThenV = Then->execute(lvl + 1);
+        Value ThenV = Then->execute(lvl + 1, StartIdx);
         if (ThenV.isEmpty())
         {
             Value RetVal(true);
             return RetVal;
         }
-        NamedValues[lvl + 1].clear();
+        VarTable[lvl + 1].clear();
+        StackMemory.quickDelete(StartIdx);
         return ThenV;
     }
     else
     {
         // std::cout << "else" << std::endl;
-        Value ElseV = Else->execute(lvl + 1);
+        Value ElseV = Else->execute(lvl + 1, StartIdx);
         if (ElseV.isEmpty())
         {
             Value RetVal(true);
             return RetVal;
         }
-        NamedValues[lvl + 1].clear();
+        VarTable[lvl + 1].clear();
+        StackMemory.quickDelete(StartIdx);
         return ElseV;
     }
 }
 
-Value ForExprAST::execute(int lvl)
+Value ForExprAST::execute(int lvl, int stackIdx)
 {
-    Value StartVal = Start->execute(lvl);
+    Value StartVal = Start->execute(lvl, stackIdx);
     if (StartVal.isEmpty())
     {
         Value RetVal(true);
@@ -242,9 +250,9 @@ Value ForExprAST::execute(int lvl)
     int StartValLvl;
     for (int i = lvl; i >= 0; i--)
     {
-        if (NamedValues[i].find(VarName) != NamedValues[i].end())
+        if (VarTable[i].find(VarName) != VarTable[i].end())
         {
-            NamedValues[i][VarName] = StartVal;
+            StackMemory.setValue(VarTable[i][VarName], StartVal);
             StartValLvl = i;
             found = true;
             break;
@@ -252,14 +260,15 @@ Value ForExprAST::execute(int lvl)
     }
     if (!found)
     {
-        NamedValues[lvl][VarName] = StartVal;
+        int idx = StackMemory.addValue(StartVal);
+        VarTable[lvl][VarName] = idx;
         StartValLvl = lvl;
     }
 
     // Emit the step value.
     Value StepVal(1.0);
     if (Step) {
-        StepVal = Step->execute(lvl);
+        StepVal = Step->execute(lvl, stackIdx);
         if (StepVal.isEmpty())
         {
             Value RetVal(true);
@@ -267,9 +276,11 @@ Value ForExprAST::execute(int lvl)
         }
     }
 
+    int StartIdx = StackMemory.getSize();
+
     while (true)
     {
-        Value EndCond = End->execute(lvl);
+        Value EndCond = End->execute(lvl, stackIdx);
         if (EndCond.isEmpty())
         {
             Value RetVal(true);
@@ -277,24 +288,26 @@ Value ForExprAST::execute(int lvl)
         }
         if (!(bool)EndCond.getVal()) break;
 
-        Value BodyExpr = Body->execute(lvl + 1);
+        Value BodyExpr = Body->execute(lvl + 1, StartIdx);
         if (BodyExpr.isEmpty())
         {
             Value RetVal(true);
             return RetVal;
         }
 
-        NamedValues[StartValLvl][VarName].updateVal(NamedValues[StartValLvl][VarName].getVal() + StepVal.getVal());
+        StackMemory.setValue(VarTable[StartValLvl][VarName],
+            Value(StackMemory.getValue(VarTable[StartValLvl][VarName]).getVal() + StepVal.getVal()));
     }
-    NamedValues[lvl + 1].clear();
+    VarTable[lvl + 1].clear();
+    StackMemory.quickDelete(StartIdx);
 
     Value RetVal(0.0);
     return RetVal;
 }
 
-Value RepeatExprAST::execute(int lvl)
+Value RepeatExprAST::execute(int lvl, int stackIdx)
 {
-    Value Iter = IterNum->execute(lvl);
+    Value Iter = IterNum->execute(lvl, stackIdx);
     if (Iter.isEmpty())
     {
         Value RetVal(true);
@@ -303,7 +316,7 @@ Value RepeatExprAST::execute(int lvl)
    
     for (int i = 0; i < (unsigned int)(Iter.getVal()); i++)
     {
-        Value BodyExpr = Body->execute(lvl + 1);
+        Value BodyExpr = Body->execute(lvl + 1, StackMemory.getSize());
         if (BodyExpr.isEmpty())
         {
             Value RetVal(true);
@@ -314,35 +327,45 @@ Value RepeatExprAST::execute(int lvl)
     return RetVal;
 }
 
-Value BlockExprAST::execute(int lvl)
+Value BlockExprAST::execute(int lvl, int stackIdx)
 {
     Value RetVal(true);
+    int StartIdx = StackMemory.getSize();
     for (auto& Expr : Expressions)
-        RetVal = Expr->execute(lvl + 1);
+        RetVal = Expr->execute(lvl + 1, StartIdx);
 
-    NamedValues[lvl + 1].clear();
+    VarTable[lvl + 1].clear();
+    StackMemory.quickDelete(StartIdx);
     return RetVal;
 }
 
-Value PrototypeAST::execute(int lvl)
+Value PrototypeAST::execute(int lvl, int stackIdx)
 {
     Value RetVal(0.0);
     return RetVal;
 }
 
-Value FunctionAST::execute(std::vector<Value> Ops, int lvl)
+Value FunctionAST::execute(std::vector<Value> Ops, int lvl, int stackIdx)
 {
     // If this is an operator, install it.
     if (Proto->isBinaryOp())
         BinopPrecedence[Proto->getOperatorName()] = Proto->getBinaryPrecedence();
 
+    int StartIdx = StackMemory.getSize();
+
     auto& Arg = Proto->getArgs();
     for (int i = 0; i < Proto->getArgsSize(); i++)
-        NamedValues[lvl + 1][Arg[i]] = Ops[i].getVal();
+    {
+        int idx = StackMemory.addValue(Ops[i]);
+        VarTable[lvl + 1][Arg[i]] = idx;
+    }
 
-    Value RetVal = Body->execute(lvl + 1);
+    Value RetVal = Body->execute(lvl + 1, StackMemory.getSize());
     if (!RetVal.isEmpty())
         return RetVal;
+
+    VarTable[lvl + 1].clear();
+    StackMemory.quickDelete(StartIdx);
 
     if (Proto->isBinaryOp())
         BinopPrecedence.erase(Proto->getOperatorName());
@@ -372,7 +395,7 @@ void HandleTopLevelExpression()
     // Evaluate a top-level expression into an anonymous function.
     if (auto FnAST = ParseTopLevelExpr())
     {
-        Value RetVal = FnAST->execute(std::vector<Value>(), 0);
+        Value RetVal = FnAST->execute(std::vector<Value>(), 0, 0);
         if (!RetVal.isEmpty())
         {
             double FP = RetVal.getVal();

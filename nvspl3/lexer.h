@@ -2,7 +2,8 @@
 
 #include <string>
 
-enum Token {
+enum Token
+{
     tok_eof = -1,
 
     // commands
@@ -27,6 +28,7 @@ enum Token {
 
     // var definition
     tok_var = -35,
+    tok_arr = -36,
 
     // block
     tok_openblock = -90,
