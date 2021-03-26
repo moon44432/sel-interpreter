@@ -1,5 +1,5 @@
 
 // NVSPL3 Language Project
-// stdlibrary.h
+// interactiveMode.h
 
 #pragma once

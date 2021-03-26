@@ -1,3 +1,7 @@
+
+// NVSPL3 Language Project
+// execute.cpp
+
 #include "lexer.h"
 #include "parser.h"
 #include "execute.h"
@@ -23,13 +27,10 @@ Value VariableExprAST::execute(int lvl, int stackIdx)
 {
     if (!Indices.empty()) // array element
     {
-        std::cout << "array element" << std::endl;
         for (int i = lvl; i >= 0; i--)
         {
-            std::cout << "checking" << std::endl;
             if (AddrTable[i].find(Name) != AddrTable[i].end())
             {
-                std::cout << "array found" << std::endl;
                 for (int j = lvl; j >= 0; j--)
                 {
                     if (ArrTable[j].find(Name) != ArrTable[j].end())
@@ -50,9 +51,6 @@ Value VariableExprAST::execute(int lvl, int stackIdx)
                             for (int m = l + 1; m < IdxV.size(); m++) MulVal *= LenDim[m];
                             AddVal += MulVal * (int)IdxV[l].getVal();
                         }
-
-                        std::cout << AddrTable[i][Name] + AddVal << std::endl;
-
                         return StackMemory.getValue(AddrTable[i][Name] + AddVal);
                     }
                 }
@@ -73,18 +71,12 @@ Value VariableExprAST::execute(int lvl, int stackIdx)
 
 Value ArrDeclExprAST::execute(int lvl, int stackIdx)
 {
-    std::cout << "allocate array" << std::endl;
-
     AddrTable[lvl][Name] = StackMemory.addValue(Value(0.0));
-    std::cout << AddrTable[lvl][Name] << std::endl;
     ArrTable[lvl][Name] = Indices;
 
     int size = 1;
     for (int i = 0; i < Indices.size(); i++) size *= Indices[i];
     for (int i = 0; i < size - 1; i++) StackMemory.addValue(Value(0.0));
-
-    std::cout << "size: " << size << std::endl;
-    std::cout << StackMemory.getSize() << std::endl;
 
     Value RetVal(true);
     return RetVal;
@@ -137,7 +129,6 @@ Value BinaryExprAST::execute(int lvl, int stackIdx) {
             return LogErrorV("destination of '=' must be a variable");
         // execute the RHS.
         Value Val = RHS->execute(lvl, stackIdx);
-        std::cout << "Val: " << Val.getVal() << std::endl;
 
         if (Val.isEmpty())
         {
@@ -149,13 +140,10 @@ Value BinaryExprAST::execute(int lvl, int stackIdx) {
         std::vector<std::shared_ptr<ExprAST>> Indices = LHSE->getIndices();
         if (!Indices.empty()) // array element
         {
-            std::cout << "array element" << std::endl;
             for (int i = lvl; i >= 0; i--)
             {
-                std::cout << "checking" << std::endl;
                 if (AddrTable[i].find(LHSE->getName()) != AddrTable[i].end())
                 {
-                    std::cout << "array found" << std::endl;
                     int j;
                     for (j = lvl; j >= 0; j--)
                     {
@@ -177,7 +165,6 @@ Value BinaryExprAST::execute(int lvl, int stackIdx) {
                                 for (int m = l + 1; m < IdxV.size(); m++) MulVal *= LenDim[m];
                                 AddVal += MulVal * (int)IdxV[l].getVal();
                             }
-                            std::cout << AddrTable[i][LHSE->getName()] + AddVal << std::endl;
                             StackMemory.setValue(AddrTable[i][LHSE->getName()] + AddVal, Val);
                             break;
                         }
@@ -206,7 +193,7 @@ Value BinaryExprAST::execute(int lvl, int stackIdx) {
 
     Value L = LHS->execute(lvl, stackIdx);
     Value R = RHS->execute(lvl, stackIdx);
-    // std::cout << L.getVal() << ' ' << R.getVal() << std::endl;
+
     if (L.isEmpty() || R.isEmpty())
     {
         Value RetVal(true);
@@ -314,7 +301,6 @@ Value IfExprAST::execute(int lvl, int stackIdx)
 
     if ((bool)(CondV.getVal()))
     {
-        // std::cout << "then" << std::endl;
         Value ThenV = Then->execute(lvl + 1, StartIdx);
         AddrTable.pop_back();
         ArrTable.pop_back();
@@ -329,7 +315,6 @@ Value IfExprAST::execute(int lvl, int stackIdx)
     }
     else
     {
-        // std::cout << "else" << std::endl;
         Value ElseV = Else->execute(lvl + 1, StartIdx);
         AddrTable.pop_back();
         ArrTable.pop_back();

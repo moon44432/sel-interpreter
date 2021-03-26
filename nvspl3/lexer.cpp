@@ -1,3 +1,7 @@
+
+// NVSPL3 Language Project
+// lexer.cpp
+
 #include "lexer.h"
 #include <iostream>
 
@@ -12,9 +16,8 @@ int gettok()
     while (isspace(LastChar))
         LastChar = getchar();
 
-    if (isalpha(LastChar) || LastChar == '_')
-    { // identifier: [a-zA-Z_][a-zA-Z0-9_]*
-        std::cout << IdentifierStr << std::endl;
+    if (isalpha(LastChar) || LastChar == '_') // identifier: [a-zA-Z_][a-zA-Z0-9_]*
+    { 
         IdentifierStr = LastChar;
         
         while (true)
@@ -24,7 +27,6 @@ int gettok()
             else break;
         }
 
-        std::cout << IdentifierStr << std::endl;
         if (IdentifierStr == "func")
             return tok_def;
         if (IdentifierStr == "extern")

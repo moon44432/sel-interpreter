@@ -30,6 +30,9 @@
     <ClCompile Include="stdlibrary.cpp">
       <Filter>소스 파일</Filter>
     </ClCompile>
+    <ClCompile Include="interactiveMode.cpp">
+      <Filter>소스 파일</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="lexer.h">
@@ -42,6 +45,9 @@
       <Filter>헤더 파일</Filter>
     </ClInclude>
     <ClInclude Include="stdlibrary.h">
+      <Filter>헤더 파일</Filter>
+    </ClInclude>
+    <ClInclude Include="interactiveMode.h">
       <Filter>헤더 파일</Filter>
     </ClInclude>
   </ItemGroup>

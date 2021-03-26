@@ -13,7 +13,7 @@ int main() {
     binopPrecInit();
 
     // Prime the first token.
-    fprintf(stderr, "ready> ");
+    fprintf(stderr, ">>> ");
     getNextToken();
 
     // Run the main "interpreter loop" now.

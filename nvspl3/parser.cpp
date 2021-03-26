@@ -1,7 +1,10 @@
+
+// NVSPL3 Language Project
+// parser.cpp
+
 #include "parser.h"
 #include "lexer.h"
 #include <iostream>
-
 
 int CurTok;
 std::map<std::string, int> BinopPrecedence;
@@ -86,7 +89,6 @@ std::shared_ptr<ExprAST> ParseIdentifierExpr()
         if (CurTok != '[') return std::make_shared<VariableExprAST>(IdName);
         getNextToken();
 
-        std::cout << "array ref: " << IdName << std::endl;
         std::vector<std::shared_ptr<ExprAST>> Indices;
         if (CurTok != ']')
         {
@@ -138,8 +140,6 @@ std::shared_ptr<ExprAST> ParseIdentifierExpr()
 /// arrdeclexpr
 std::shared_ptr<ExprAST> ParseArrDeclExpr()
 {
-    // std::cout << "arr declaration" << std::endl;
-
     getNextToken(); // eat the arr.
 
     std::string IdName = IdentifierStr;
@@ -157,7 +157,6 @@ std::shared_ptr<ExprAST> ParseArrDeclExpr()
         {
             if (CurTok == tok_number)
             {
-                std::cout << NumVal << std::endl;
                 if ((unsigned)NumVal >= 1) Indices.push_back((unsigned)NumVal);
                 else return LogError("length of each dimension must be 1 or higher");
             }
@@ -172,8 +171,6 @@ std::shared_ptr<ExprAST> ParseArrDeclExpr()
         }
     }
     getNextToken();
-
-    std::cout << "ArrName: " << IdName << std::endl;
 
     return std::make_shared<ArrDeclExprAST>(IdName, Indices);
 }
@@ -325,7 +322,7 @@ std::shared_ptr<ExprAST> ParseUnary()
     // If this is a unary operator, read it.
     int Opc = CurTok;
     getNextToken();
-    std::cout << "UnaryOp" << (char)Opc << std::endl;
+
     if (auto Operand = ParseUnary())
         return std::make_shared<UnaryExprAST>(Opc, std::move(Operand));
     return nullptr;
@@ -348,7 +345,6 @@ std::shared_ptr<ExprAST> ParseBinOpRHS(int ExprPrec, std::shared_ptr<ExprAST> LH
             getNextToken();
         }
         int TokPrec = GetTokPrecedence(BinOp);
-        std::cout << BinOp << std::endl;
 
         // If this is a binop that binds at least as tightly as the current binop,
         // consume it, otherwise we are done.
@@ -402,14 +398,11 @@ std::shared_ptr<ExprAST> ParseExpression()
 std::shared_ptr<ExprAST> ParseBlockExpression()
 {
     if (CurTok != tok_openblock)
-    {
-        printf("Parse Expression... ch : %c\n", LastChar);
         return ParseExpression();
-    }
+    getNextToken();
+
     std::vector<std::shared_ptr<ExprAST>> ExprSeq;
 
-    getNextToken();
-    printf("Parse Block Expression... ch : %c\n", LastChar);
     while (true)
     {
         auto Expr = ParseBlockExpression();
@@ -492,9 +485,6 @@ std::shared_ptr<PrototypeAST> ParsePrototype()
         if (CurTok != ',')
             return LogErrorP("Expected ',' or ')'");
     }
-
-    std::cout << ArgNames.size() << std::endl;
-
     // success.
     getNextToken(); // eat ')'
 
