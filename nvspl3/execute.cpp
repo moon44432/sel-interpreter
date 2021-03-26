@@ -51,6 +51,8 @@ Value VariableExprAST::execute(int lvl, int stackIdx)
                             AddVal += MulVal * (int)IdxV[l].getVal();
                         }
 
+                        std::cout << AddrTable[i][Name] + AddVal << std::endl;
+
                         return StackMemory.getValue(AddrTable[i][Name] + AddVal);
                     }
                 }
@@ -135,6 +137,8 @@ Value BinaryExprAST::execute(int lvl, int stackIdx) {
             return LogErrorV("destination of '=' must be a variable");
         // execute the RHS.
         Value Val = RHS->execute(lvl, stackIdx);
+        std::cout << "Val: " << Val.getVal() << std::endl;
+
         if (Val.isEmpty())
         {
             Value RetVal(true);
@@ -142,19 +146,61 @@ Value BinaryExprAST::execute(int lvl, int stackIdx) {
         }
 
         // Look up the name.
-        bool found = false;
-        for (int i = lvl; i >= 0; i--)
+        std::vector<std::shared_ptr<ExprAST>> Indices = LHSE->getIndices();
+        if (!Indices.empty()) // array element
         {
-            if (AddrTable[i].find(LHSE->getName()) != AddrTable[i].end())
+            std::cout << "array element" << std::endl;
+            for (int i = lvl; i >= 0; i--)
             {
-                StackMemory.setValue(AddrTable[i][LHSE->getName()], Val);
-                found = true;
-                break;
+                std::cout << "checking" << std::endl;
+                if (AddrTable[i].find(LHSE->getName()) != AddrTable[i].end())
+                {
+                    std::cout << "array found" << std::endl;
+                    int j;
+                    for (j = lvl; j >= 0; j--)
+                    {
+                        if (ArrTable[j].find(LHSE->getName()) != ArrTable[j].end())
+                        {
+                            std::vector<Value> IdxV;
+                            for (unsigned k = 0, e = Indices.size(); k != e; ++k) {
+                                IdxV.push_back(Indices[k]->execute(lvl, stackIdx));
+                                if (IdxV.back().isEmpty()) return LogErrorV("error while calculating indices");
+                            }
+
+                            std::vector<int> LenDim = ArrTable[j][LHSE->getName()];
+                            if (IdxV.size() != LenDim.size()) return LogErrorV("dimension mismatch");
+
+                            int AddVal = 0;
+                            for (int l = 0; l < IdxV.size() - 1; l++)
+                            {
+                                int MulVal = 1;
+                                for (int m = l + 1; m < IdxV.size(); m++) MulVal *= LenDim[m];
+                                AddVal += MulVal * (int)IdxV[l].getVal();
+                            }
+
+                            StackMemory.setValue(AddrTable[i][LHSE->getName()] + AddVal, Val);
+                            break;
+                        }
+                    }
+                    if (j < 0) return LogErrorV(((LHSE->getName() + (std::string)(" is not an array"))).c_str());
+                }
             }
         }
-        if (!found)
-            AddrTable[lvl][LHSE->getName()] = StackMemory.addValue(Val);
-
+        else // normal variable
+        {
+            bool found = false;
+            for (int i = lvl; i >= 0; i--)
+            {
+                if (AddrTable[i].find(LHSE->getName()) != AddrTable[i].end())
+                {
+                    StackMemory.setValue(AddrTable[i][LHSE->getName()], Val);
+                    found = true;
+                    break;
+                }
+            }
+            if (!found)
+                AddrTable[lvl][LHSE->getName()] = StackMemory.addValue(Val);
+        }
         return Val;
     }
 

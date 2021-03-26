@@ -62,6 +62,7 @@ public:
         : Name(Name), Indices(Indices) {}
     VariableExprAST(const std::string& Name) : Name(Name) {}
     const std::string& getName() const { return Name; }
+    const std::vector<std::shared_ptr<ExprAST>> getIndices() const { return Indices; }
     Value execute(int lvl, int stackIdx) override;
 };
 
