@@ -41,8 +41,8 @@ int gettok()
             return tok_binary;
         if (IdentifierStr == "unary")
             return tok_unary;
-        if (IdentifierStr == "var")
-            return tok_var;
+        if (IdentifierStr == "arr")
+            return tok_arr;
         if (IdentifierStr == "rept")
             return tok_repeat;
         return tok_identifier;

@@ -81,8 +81,33 @@ std::shared_ptr<ExprAST> ParseIdentifierExpr()
 
 	getNextToken(); // eat identifier.
 
-	if (CurTok != '(') // Simple variable ref.
-		return std::make_shared<VariableExprAST>(IdName);
+	if (CurTok != '(') // simple variable or array element ref.
+	{
+		if (CurTok != '[') return std::make_shared<VariableExprAST>(IdName);
+		getNextToken();
+
+		std::cout << "array ref: " << IdName << std::endl;
+		std::vector<std::shared_ptr<ExprAST>> Indices;
+		if (CurTok != ']')
+		{
+			while (true)
+			{
+				if (auto Idx = ParseExpression())
+					Indices.push_back(std::move(Idx));
+				else return nullptr;
+
+				if (CurTok == ']')
+					break;
+
+				if (CurTok != ',')
+					return LogError("Expected ']' or ',' in index list");
+				getNextToken();
+			}
+		}
+		getNextToken();
+
+		return std::make_shared<VariableExprAST>(IdName, Indices);
+	}
 
 	// Call.
 	getNextToken(); // eat (
@@ -93,8 +118,7 @@ std::shared_ptr<ExprAST> ParseIdentifierExpr()
 		{
 			if (auto Arg = ParseExpression())
 				Args.push_back(std::move(Arg));
-			else
-				return nullptr;
+			else return nullptr;
 
 			if (CurTok == ')')
 				break;
@@ -109,6 +133,49 @@ std::shared_ptr<ExprAST> ParseIdentifierExpr()
 	getNextToken();
 
 	return std::make_shared<CallExprAST>(IdName, std::move(Args));
+}
+
+/// arrdeclexpr
+std::shared_ptr<ExprAST> ParseArrDeclExpr()
+{
+	// std::cout << "arr declaration" << std::endl;
+
+	getNextToken(); // eat the arr.
+
+	std::string IdName = IdentifierStr;
+	getNextToken();
+
+	if (CurTok != '[')
+		return LogError("expected '[' after array name");
+	getNextToken();
+
+	std::vector<int> Indices;
+
+	if (CurTok != ']')
+	{
+		while (true)
+		{
+			if (CurTok == tok_number)
+			{
+				std::cout << NumVal << std::endl;
+				if ((unsigned)NumVal >= 1) Indices.push_back((unsigned)NumVal);
+				else return LogError("length of each dimension must be 1 or higher");
+			}
+			else return LogError("length of each dimension must be an integer");
+			getNextToken();
+
+			if (CurTok == ']') break;
+
+			if (CurTok != ',')
+				return LogError("expected ']' or ','");
+			getNextToken();
+		}
+	}
+	getNextToken();
+
+	std::cout << "ArrName: " << IdName << std::endl;
+
+	return std::make_shared<ArrDeclExprAST>(IdName, Indices);
 }
 
 /// ifexpr ::= 'if' expression 'then' expression 'else' expression
@@ -223,7 +290,7 @@ std::shared_ptr<ExprAST> ParseRepeatExpr()
 ///   ::= parenexpr
 ///   ::= ifexpr
 ///   ::= forexpr
-///   ::= varexpr
+///   ::= arrexpr
 std::shared_ptr<ExprAST> ParsePrimary()
 {
 	switch (CurTok) {
@@ -239,6 +306,8 @@ std::shared_ptr<ExprAST> ParsePrimary()
 		return ParseIfExpr();
 	case tok_repeat:
 		return ParseRepeatExpr();
+	case tok_arr:
+		return ParseArrDeclExpr();
 	case '(': // must be the last one (for, var, if, etc also use '(')
 		return ParseParenExpr();
 	}

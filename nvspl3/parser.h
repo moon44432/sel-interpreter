@@ -55,10 +55,23 @@ public:
 /// VariableExprAST - Expression class for referencing a variable, like "a".
 class VariableExprAST : public ExprAST {
     std::string Name;
+    std::vector<std::shared_ptr<ExprAST>> Indices;
 
 public:
+    VariableExprAST(const std::string& Name, std::vector<std::shared_ptr<ExprAST>> Indices)
+        : Name(Name), Indices(Indices) {}
     VariableExprAST(const std::string& Name) : Name(Name) {}
     const std::string& getName() const { return Name; }
+    Value execute(int lvl, int stackIdx) override;
+};
+
+/// ArrDeclExprAST
+class ArrDeclExprAST : public ExprAST {
+    std::string Name;
+    std::vector<int> Indices;
+
+public:
+    ArrDeclExprAST(const std::string& Name, std::vector<int> Indices) : Name(Name), Indices(Indices) {}
     Value execute(int lvl, int stackIdx) override;
 };
 
@@ -119,19 +132,6 @@ public:
         std::shared_ptr<ExprAST> Body)
         : VarName(VarName), Start(std::move(Start)), End(std::move(End)),
         Step(std::move(Step)), Body(std::move(Body)) {}
-    Value execute(int lvl, int stackIdx) override;
-};
-
-/// VarExprAST - Expression class for var
-class VarExprAST : public ExprAST {
-    std::vector<std::pair<std::string, std::shared_ptr<ExprAST>>> VarNames;
-    std::shared_ptr<ExprAST> Body;
-
-public:
-    VarExprAST(
-        std::vector<std::pair<std::string, std::shared_ptr<ExprAST>>> VarNames,
-        std::shared_ptr<ExprAST> Body)
-        : VarNames(std::move(VarNames)), Body(std::move(Body)) {}
     Value execute(int lvl, int stackIdx) override;
 };
 
@@ -220,11 +220,11 @@ std::shared_ptr<ExprAST> ParseParenExpr();
 
 std::shared_ptr<ExprAST> ParseIdentifierExpr();
 
+std::shared_ptr<ExprAST> ParseArrDeclExpr();
+
 std::shared_ptr<ExprAST> ParseIfExpr();
 
 std::shared_ptr<ExprAST> ParseForExpr();
-
-std::shared_ptr<ExprAST> ParseVarExpr();
 
 std::shared_ptr<ExprAST> ParsePrimary();
 

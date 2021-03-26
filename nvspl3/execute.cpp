@@ -3,7 +3,8 @@
 #include "execute.h"
 #include <iostream>
 
-static std::vector<std::map<std::string, int>> VarTable;
+static std::vector<std::map<std::string, int>> AddrTable(1);
+static std::vector<std::map<std::string, std::vector<int>>> ArrTable(1);
 static std::map<std::string, std::shared_ptr<FunctionAST>> Functions;
 static Memory StackMemory;
 
@@ -20,12 +21,68 @@ Value NumberExprAST::execute(int lvl, int stackIdx)
 
 Value VariableExprAST::execute(int lvl, int stackIdx)
 {
-    // Look this variable up in the function.
-    for (int i = lvl; i >= 0; i--)
+    if (!Indices.empty()) // array element
     {
-        if (VarTable[i].find(Name) != VarTable[i].end())
-            return StackMemory.getValue(VarTable[i][Name]);
+        std::cout << "array element" << std::endl;
+        for (int i = lvl; i >= 0; i--)
+        {
+            std::cout << "checking" << std::endl;
+            if (AddrTable[i].find(Name) != AddrTable[i].end())
+            {
+                std::cout << "array found" << std::endl;
+                for (int j = lvl; j >= 0; j--)
+                {
+                    if (ArrTable[j].find(Name) != ArrTable[j].end())
+                    {
+                        std::vector<Value> IdxV;
+                        for (unsigned k = 0, e = Indices.size(); k != e; ++k) {
+                            IdxV.push_back(Indices[k]->execute(lvl, stackIdx));
+                            if (IdxV.back().isEmpty()) return LogErrorV("error while calculating indices");
+                        }
+
+                        std::vector<int> LenDim = ArrTable[j][Name];
+                        if (IdxV.size() != LenDim.size()) return LogErrorV("dimension mismatch");
+
+                        int AddVal = 0;
+                        for (int l = 0; l < IdxV.size() - 1; l++)
+                        {
+                            int MulVal = 1;
+                            for (int m = l + 1; m < IdxV.size(); m++) MulVal *= LenDim[m];
+                            AddVal += MulVal * (int)IdxV[l].getVal();
+                        }
+
+                        return StackMemory.getValue(AddrTable[i][Name] + AddVal);
+                    }
+                }
+                return LogErrorV(((Name + (std::string)(" is not an array"))).c_str());
+            }
+        }
     }
+    else // normal variable
+    {
+        for (int i = lvl; i >= 0; i--)
+        {
+            if (AddrTable[i].find(Name) != AddrTable[i].end())
+                return StackMemory.getValue(AddrTable[i][Name]);
+        }
+    }
+    return LogErrorV("identifier not found");
+}
+
+Value ArrDeclExprAST::execute(int lvl, int stackIdx)
+{
+    std::cout << "allocate array" << std::endl;
+
+    AddrTable[lvl][Name] = StackMemory.addValue(Value(0.0));
+    std::cout << AddrTable[lvl][Name] << std::endl;
+    ArrTable[lvl][Name] = Indices;
+
+    int size = 1;
+    for (int i = 0; i < Indices.size(); i++) size *= Indices[i];
+    for (int i = 0; i < size - 1; i++) StackMemory.addValue(Value(0.0));
+
+    std::cout << "size: " << size << std::endl;
+    std::cout << StackMemory.getSize() << std::endl;
 
     Value RetVal(true);
     return RetVal;
@@ -40,7 +97,6 @@ Value UnaryExprAST::execute(int lvl, int stackIdx)
         return RetVal;
     }
 
-    // Last character까지 보고 정의된 binop이면 건너뛰기
     Value RetVal;
     switch (Opcode)
     {
@@ -71,7 +127,8 @@ Value UnaryExprAST::execute(int lvl, int stackIdx)
 
 Value BinaryExprAST::execute(int lvl, int stackIdx) {
     // Special case '=' because we don't want to emit the LHS as an expression.
-    if (Op == "=") {
+    if (Op == "=")
+    {
         // Assignment requires the LHS to be an identifier.
         VariableExprAST* LHSE = static_cast<VariableExprAST*>(LHS.get());
         if (!LHSE)
@@ -88,18 +145,15 @@ Value BinaryExprAST::execute(int lvl, int stackIdx) {
         bool found = false;
         for (int i = lvl; i >= 0; i--)
         {
-            if (VarTable[i].find(LHSE->getName()) != VarTable[i].end())
+            if (AddrTable[i].find(LHSE->getName()) != AddrTable[i].end())
             {
-                StackMemory.setValue(VarTable[i][LHSE->getName()], Val);
+                StackMemory.setValue(AddrTable[i][LHSE->getName()], Val);
                 found = true;
                 break;
             }
         }
         if (!found)
-        {
-            int idx = StackMemory.addValue(Val);
-            VarTable[lvl][LHSE->getName()] = idx;
-        }
+            AddrTable[lvl][LHSE->getName()] = StackMemory.addValue(Val);
 
         return Val;
     }
@@ -209,33 +263,37 @@ Value IfExprAST::execute(int lvl, int stackIdx)
     }
 
     int StartIdx = StackMemory.getSize();
-    std::map<std::string, int> Table;
-    VarTable.push_back(Table);
+    AddrTable.push_back(std::map<std::string, int>());
+    ArrTable.push_back(std::map<std::string, std::vector<int>>());
 
     if ((bool)(CondV.getVal()))
     {
         // std::cout << "then" << std::endl;
         Value ThenV = Then->execute(lvl + 1, StartIdx);
+        AddrTable.pop_back();
+        ArrTable.pop_back();
+        StackMemory.quickDelete(StartIdx);
+
         if (ThenV.isEmpty())
         {
             Value RetVal(true);
             return RetVal;
         }
-        VarTable.pop_back();
-        StackMemory.quickDelete(StartIdx);
         return ThenV;
     }
     else
     {
         // std::cout << "else" << std::endl;
         Value ElseV = Else->execute(lvl + 1, StartIdx);
+        AddrTable.pop_back();
+        ArrTable.pop_back();
+        StackMemory.quickDelete(StartIdx);
+
         if (ElseV.isEmpty())
         {
             Value RetVal(true);
             return RetVal;
         }
-        VarTable.pop_back();
-        StackMemory.quickDelete(StartIdx);
         return ElseV;
     }
 }
@@ -252,9 +310,9 @@ Value ForExprAST::execute(int lvl, int stackIdx)
     int StartValLvl;
     for (int i = lvl; i >= 0; i--)
     {
-        if (VarTable[i].find(VarName) != VarTable[i].end())
+        if (AddrTable[i].find(VarName) != AddrTable[i].end())
         {
-            StackMemory.setValue(VarTable[i][VarName], StartVal);
+            StackMemory.setValue(AddrTable[i][VarName], StartVal);
             StartValLvl = i;
             found = true;
             break;
@@ -262,8 +320,7 @@ Value ForExprAST::execute(int lvl, int stackIdx)
     }
     if (!found)
     {
-        int idx = StackMemory.addValue(StartVal);
-        VarTable[lvl][VarName] = idx;
+        AddrTable[lvl][VarName] = StackMemory.addValue(StartVal);
         StartValLvl = lvl;
     }
 
@@ -279,8 +336,8 @@ Value ForExprAST::execute(int lvl, int stackIdx)
     }
 
     int StartIdx = StackMemory.getSize();
-    std::map<std::string, int> Table;
-    VarTable.push_back(Table);
+    AddrTable.push_back(std::map<std::string, int>());
+    ArrTable.push_back(std::map<std::string, std::vector<int>>());
 
     while (true)
     {
@@ -299,10 +356,11 @@ Value ForExprAST::execute(int lvl, int stackIdx)
             return RetVal;
         }
 
-        StackMemory.setValue(VarTable[StartValLvl][VarName],
-            Value(StackMemory.getValue(VarTable[StartValLvl][VarName]).getVal() + StepVal.getVal()));
+        StackMemory.setValue(AddrTable[StartValLvl][VarName],
+            Value(StackMemory.getValue(AddrTable[StartValLvl][VarName]).getVal() + StepVal.getVal()));
     }
-    VarTable.pop_back();
+    AddrTable.pop_back();
+    ArrTable.pop_back();
     StackMemory.quickDelete(StartIdx);
 
     Value RetVal(0.0);
@@ -318,7 +376,7 @@ Value RepeatExprAST::execute(int lvl, int stackIdx)
         return RetVal;
     }
    
-    for (int i = 0; i < (unsigned int)(Iter.getVal()); i++)
+    for (unsigned i = 0; i < (unsigned)(Iter.getVal()); i++)
     {
         Value BodyExpr = Body->execute(lvl + 1, StackMemory.getSize());
         if (BodyExpr.isEmpty())
@@ -335,13 +393,14 @@ Value BlockExprAST::execute(int lvl, int stackIdx)
 {
     Value RetVal(true);
     int StartIdx = StackMemory.getSize();
-    std::map<std::string, int> Table;
-    VarTable.push_back(Table);
+    AddrTable.push_back(std::map<std::string, int>());
+    ArrTable.push_back(std::map<std::string, std::vector<int>>());
 
     for (auto& Expr : Expressions)
         RetVal = Expr->execute(lvl + 1, StartIdx);
 
-    VarTable.pop_back();
+    AddrTable.pop_back();
+    ArrTable.pop_back();
     StackMemory.quickDelete(StartIdx);
     return RetVal;
 }
@@ -359,22 +418,32 @@ Value FunctionAST::execute(std::vector<Value> Ops, int lvl, int stackIdx)
         BinopPrecedence[Proto->getOperatorName()] = Proto->getBinaryPrecedence();
 
     int StartIdx = StackMemory.getSize();
-    std::map<std::string, int> Table;
-    VarTable.push_back(Table);
+    if (lvl > 0)
+    {
+        AddrTable.push_back(std::map<std::string, int>());
+        ArrTable.push_back(std::map<std::string, std::vector<int>>());
+    }
 
     auto& Arg = Proto->getArgs();
     for (int i = 0; i < Proto->getArgsSize(); i++)
     {
-        int idx = StackMemory.addValue(Ops[i]);
-        VarTable[lvl + 1][Arg[i]] = idx;
+        if (lvl > 0) AddrTable[lvl + 1][Arg[i]] = StackMemory.addValue(Ops[i]);
+        else AddrTable[lvl][Arg[i]] = StackMemory.addValue(Ops[i]);
     }
 
-    Value RetVal = Body->execute(lvl + 1, StackMemory.getSize());
+    Value RetVal;
+    if (lvl > 0) RetVal = Body->execute(lvl + 1, StackMemory.getSize());
+    else RetVal = Body->execute(lvl, StackMemory.getSize());
+
+    if (lvl > 0)
+    {
+        AddrTable.pop_back();
+        ArrTable.pop_back();
+        StackMemory.quickDelete(StartIdx);
+    }
+
     if (!RetVal.isEmpty())
         return RetVal;
-
-    VarTable.pop_back();
-    StackMemory.quickDelete(StartIdx);
 
     if (Proto->isBinaryOp())
         BinopPrecedence.erase(Proto->getOperatorName());
@@ -404,9 +473,6 @@ void HandleTopLevelExpression()
     // Evaluate a top-level expression into an anonymous function.
     if (auto FnAST = ParseTopLevelExpr())
     {
-        std::map<std::string, int> Table;
-        VarTable.push_back(Table);
-
         Value RetVal = FnAST->execute(std::vector<Value>(), 0, 0);
         if (!RetVal.isEmpty())
         {
