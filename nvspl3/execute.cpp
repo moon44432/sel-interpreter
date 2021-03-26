@@ -5,6 +5,7 @@
 #include "lexer.h"
 #include "parser.h"
 #include "execute.h"
+#include "stdlibrary.h"
 #include <iostream>
 
 static std::vector<std::map<std::string, int>> AddrTable(1);
@@ -14,8 +15,7 @@ static Memory StackMemory;
 
 Value LogErrorV(const char* Str) {
     LogError(Str);
-    Value RetVal(true);
-    return RetVal;
+    return Value(true);
 }
 
 Value NumberExprAST::execute(int lvl, int stackIdx)
@@ -78,18 +78,14 @@ Value ArrDeclExprAST::execute(int lvl, int stackIdx)
     for (int i = 0; i < Indices.size(); i++) size *= Indices[i];
     for (int i = 0; i < size - 1; i++) StackMemory.addValue(Value(0.0));
 
-    Value RetVal(true);
-    return RetVal;
+    return Value(true);
 }
 
 Value UnaryExprAST::execute(int lvl, int stackIdx)
 {
     Value OperandV = Operand->execute(lvl, stackIdx);
     if (OperandV.isEmpty())
-    {
-        Value RetVal(true);
-        return RetVal;
-    }
+        return Value(true);
 
     Value RetVal;
     switch (Opcode)
@@ -131,10 +127,7 @@ Value BinaryExprAST::execute(int lvl, int stackIdx) {
         Value Val = RHS->execute(lvl, stackIdx);
 
         if (Val.isEmpty())
-        {
-            Value RetVal(true);
-            return RetVal;
-        }
+            return Value(true);
 
         // Look up the name.
         std::vector<std::shared_ptr<ExprAST>> Indices = LHSE->getIndices();
@@ -196,8 +189,7 @@ Value BinaryExprAST::execute(int lvl, int stackIdx) {
 
     if (L.isEmpty() || R.isEmpty())
     {
-        Value RetVal(true);
-        return RetVal;
+        return Value(true);
     }
     if (Op == "==")
     {
@@ -264,7 +256,22 @@ Value BinaryExprAST::execute(int lvl, int stackIdx) {
     */
 }
 
-Value CallExprAST::execute(int lvl, int stackIdx) {
+Value CallExprAST::execute(int lvl, int stackIdx)
+{
+    std::vector<Value> ArgsV;
+    for (unsigned i = 0, e = Args.size(); i != e; ++i) {
+        ArgsV.push_back(Args[i]->execute(lvl, stackIdx));
+        if (ArgsV.back().isEmpty())
+            return Value(true);
+    }
+
+    if (std::find(StdFuncList.begin(), StdFuncList.end(), Callee) != StdFuncList.end())
+    {
+        Value RetVal = CallStdFunc(Callee, ArgsV);
+        fprintf(stderr, "\n");
+        return RetVal;
+    }
+
     // Look up the name in the global module table.
     std::shared_ptr<FunctionAST> CalleeF = Functions[Callee];
     if (!CalleeF)
@@ -273,16 +280,7 @@ Value CallExprAST::execute(int lvl, int stackIdx) {
     // If argument mismatch error.
     if (CalleeF->arg_size() != Args.size())
         return LogErrorV("Incorrect # arguments passed");
-
-    std::vector<Value> ArgsV;
-    for (unsigned i = 0, e = Args.size(); i != e; ++i) {
-        ArgsV.push_back(Args[i]->execute(lvl, stackIdx));
-        if (ArgsV.back().isEmpty())
-        {
-            Value RetVal(true);
-            return RetVal;
-        }
-    }
+    
     return CalleeF->execute(ArgsV, lvl, stackIdx);
 }
 
@@ -290,10 +288,7 @@ Value IfExprAST::execute(int lvl, int stackIdx)
 {
     Value CondV = Cond->execute(lvl, stackIdx);
     if (CondV.isEmpty())
-    {
-        Value RetVal(true);
-        return RetVal;
-    }
+        return Value(true);
 
     int StartIdx = StackMemory.getSize();
     AddrTable.push_back(std::map<std::string, int>());
@@ -307,10 +302,7 @@ Value IfExprAST::execute(int lvl, int stackIdx)
         StackMemory.quickDelete(StartIdx);
 
         if (ThenV.isEmpty())
-        {
-            Value RetVal(true);
-            return RetVal;
-        }
+            return Value(true);
         return ThenV;
     }
     else
@@ -321,10 +313,7 @@ Value IfExprAST::execute(int lvl, int stackIdx)
         StackMemory.quickDelete(StartIdx);
 
         if (ElseV.isEmpty())
-        {
-            Value RetVal(true);
-            return RetVal;
-        }
+            return Value(true);
         return ElseV;
     }
 }
@@ -333,10 +322,8 @@ Value ForExprAST::execute(int lvl, int stackIdx)
 {
     Value StartVal = Start->execute(lvl, stackIdx);
     if (StartVal.isEmpty())
-    {
-        Value RetVal(true);
-        return RetVal;
-    }
+        return Value(true);
+
     bool found = false;
     int StartValLvl;
     for (int i = lvl; i >= 0; i--)
@@ -360,10 +347,7 @@ Value ForExprAST::execute(int lvl, int stackIdx)
     if (Step) {
         StepVal = Step->execute(lvl, stackIdx);
         if (StepVal.isEmpty())
-        {
-            Value RetVal(true);
-            return RetVal;
-        }
+            return Value(true);
     }
 
     int StartIdx = StackMemory.getSize();
@@ -374,18 +358,13 @@ Value ForExprAST::execute(int lvl, int stackIdx)
     {
         Value EndCond = End->execute(lvl, stackIdx);
         if (EndCond.isEmpty())
-        {
-            Value RetVal(true);
-            return RetVal;
-        }
+            return Value(true);
+
         if (!(bool)EndCond.getVal()) break;
 
         Value BodyExpr = Body->execute(lvl + 1, StartIdx);
         if (BodyExpr.isEmpty())
-        {
-            Value RetVal(true);
-            return RetVal;
-        }
+            return Value(true);
 
         StackMemory.setValue(AddrTable[StartValLvl][VarName],
             Value(StackMemory.getValue(AddrTable[StartValLvl][VarName]).getVal() + StepVal.getVal()));
@@ -402,10 +381,7 @@ Value RepeatExprAST::execute(int lvl, int stackIdx)
 {
     Value Iter = IterNum->execute(lvl, stackIdx);
     if (Iter.isEmpty())
-    {
-        Value RetVal(true);
-        return RetVal;
-    }
+        return Value(true);
 
     int StartIdx = StackMemory.getSize();
     AddrTable.push_back(std::map<std::string, int>());
@@ -415,10 +391,7 @@ Value RepeatExprAST::execute(int lvl, int stackIdx)
     {
         Value BodyExpr = Body->execute(lvl + 1, StackMemory.getSize());
         if (BodyExpr.isEmpty())
-        {
-            Value RetVal(true);
-            return RetVal;
-        }
+            return Value(true);
     }
 
     AddrTable.pop_back();

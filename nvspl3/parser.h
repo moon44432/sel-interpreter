@@ -171,7 +171,7 @@ class PrototypeAST {
     unsigned Precedence; // Precedence if a binary op.
 
 public:
-    PrototypeAST(const std::string& Name, std::vector<std::string> Args,
+    PrototypeAST(const std::string& Name, const std::vector<std::string>& Args,
         bool IsOperator = false, unsigned Prec = 0)
         : Name(Name), Args(Args), IsOperator(IsOperator),
         Precedence(Prec) {}
