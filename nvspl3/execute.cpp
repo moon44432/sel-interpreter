@@ -406,6 +406,10 @@ Value RepeatExprAST::execute(int lvl, int stackIdx)
         Value RetVal(true);
         return RetVal;
     }
+
+    int StartIdx = StackMemory.getSize();
+    AddrTable.push_back(std::map<std::string, int>());
+    ArrTable.push_back(std::map<std::string, std::vector<int>>());
    
     for (unsigned i = 0; i < (unsigned)(Iter.getVal()); i++)
     {
@@ -416,6 +420,11 @@ Value RepeatExprAST::execute(int lvl, int stackIdx)
             return RetVal;
         }
     }
+
+    AddrTable.pop_back();
+    ArrTable.pop_back();
+    StackMemory.quickDelete(StartIdx);
+
     Value RetVal(0.0);
     return RetVal;
 }
@@ -487,16 +496,10 @@ void HandleDefinition()
 {
     if (auto FnAST = ParseDefinition())
     {
-        fprintf(stderr, "Read function definition:");
-        fprintf(stderr, "\n");
-
+        fprintf(stderr, "Read function definition\n");
         Functions[FnAST->getFuncName()] = FnAST;
     }
-    else
-    {
-        // Skip token for error recovery.
-        getNextToken();
-    }
+    else getNextToken(); // Skip token for error recovery.
 }
 
 void HandleTopLevelExpression()
@@ -511,18 +514,17 @@ void HandleTopLevelExpression()
             fprintf(stderr, "Evaluated to %f\n", FP);
         }
     }
-    else
-    {
-        // Skip token for error recovery.
-        getNextToken();
-    }
+    else getNextToken(); // Skip token for error recovery.
 }
 
 /// top ::= definition | external | expression | ';'
-void MainLoop() {
-    while (true) {
-        fprintf(stderr, "ready> ");
-        switch (CurTok) {
+void MainLoop()
+{
+    while (true)
+    {
+        fprintf(stderr, ">>> ");
+        switch (CurTok)
+        {
         case tok_eof:
             return;
         case ';': // ignore top-level semicolons.

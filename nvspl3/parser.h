@@ -62,7 +62,7 @@ class VariableExprAST : public ExprAST {
     std::vector<std::shared_ptr<ExprAST>> Indices;
 
 public:
-    VariableExprAST(const std::string& Name, std::vector<std::shared_ptr<ExprAST>> Indices)
+    VariableExprAST(const std::string& Name, std::vector<std::shared_ptr<ExprAST>>& Indices)
         : Name(Name), Indices(Indices) {}
     VariableExprAST(const std::string& Name) : Name(Name) {}
     const std::string& getName() const { return Name; }
@@ -76,7 +76,7 @@ class ArrDeclExprAST : public ExprAST {
     std::vector<int> Indices;
 
 public:
-    ArrDeclExprAST(const std::string& Name, std::vector<int> Indices) : Name(Name), Indices(Indices) {}
+    ArrDeclExprAST(const std::string& Name, std::vector<int>& Indices) : Name(Name), Indices(Indices) {}
     Value execute(int lvl, int stackIdx) override;
 };
 
@@ -97,7 +97,7 @@ class BinaryExprAST : public ExprAST {
     std::shared_ptr<ExprAST> LHS, RHS;
 
 public:
-    BinaryExprAST(std::string Op, std::shared_ptr<ExprAST> LHS,
+    BinaryExprAST(const std::string& Op, std::shared_ptr<ExprAST> LHS,
         std::shared_ptr<ExprAST> RHS)
         : Op(Op), LHS(std::move(LHS)), RHS(std::move(RHS)) {}
     Value execute(int lvl, int stackIdx) override;
@@ -173,7 +173,7 @@ class PrototypeAST {
 public:
     PrototypeAST(const std::string& Name, std::vector<std::string> Args,
         bool IsOperator = false, unsigned Prec = 0)
-        : Name(Name), Args(std::move(Args)), IsOperator(IsOperator),
+        : Name(Name), Args(Args), IsOperator(IsOperator),
         Precedence(Prec) {}
 
     const std::string& getName() const { return Name; }
