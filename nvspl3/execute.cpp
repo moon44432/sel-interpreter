@@ -44,7 +44,7 @@ Value VariableExprAST::execute(int lvl, int stackIdx)
                         if (IdxV.size() != LenDim.size()) return LogErrorV("dimension mismatch");
 
                         int AddVal = 0;
-                        for (int l = 0; l < IdxV.size() - 1; l++)
+                        for (int l = 0; l < IdxV.size(); l++)
                         {
                             int MulVal = 1;
                             for (int m = l + 1; m < IdxV.size(); m++) MulVal *= LenDim[m];
@@ -171,13 +171,13 @@ Value BinaryExprAST::execute(int lvl, int stackIdx) {
                             if (IdxV.size() != LenDim.size()) return LogErrorV("dimension mismatch");
 
                             int AddVal = 0;
-                            for (int l = 0; l < IdxV.size() - 1; l++)
+                            for (int l = 0; l < IdxV.size(); l++)
                             {
                                 int MulVal = 1;
                                 for (int m = l + 1; m < IdxV.size(); m++) MulVal *= LenDim[m];
                                 AddVal += MulVal * (int)IdxV[l].getVal();
                             }
-
+                            std::cout << AddrTable[i][LHSE->getName()] + AddVal << std::endl;
                             StackMemory.setValue(AddrTable[i][LHSE->getName()] + AddVal, Val);
                             break;
                         }
