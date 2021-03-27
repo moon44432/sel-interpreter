@@ -18,7 +18,7 @@ Value CallStdFunc(const std::string& Name, const std::vector<Value>& Args)
 {
 	if (Name == "print") return print(Args);
 	else if (Name == "println") return println(Args);
-	else if (Name == "putchar") return printch(Args);
+	else if (Name == "printch") return printch(Args);
 	else if (Name == "input") return input(Args);
 }
 
@@ -37,7 +37,7 @@ Value println(const std::vector<Value>& Args)
 
 Value printch(const std::vector<Value>& Args)
 {
-	for (auto Arg : Args) fprintf(stderr, "%c", (char)Arg.getVal());
+	for (auto Arg : Args) fprintf(stderr, "%c", (char)(Arg.getVal()));
 	return Value(0.0);
 }
 
