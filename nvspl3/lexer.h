@@ -40,7 +40,9 @@ enum Token
 };
 
 extern std::string IdentifierStr;
+extern std::string MainCode;
 extern double NumVal;
 extern int LastChar;
+extern bool IsInteractive;
 
 int gettok();

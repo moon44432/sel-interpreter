@@ -23,3 +23,5 @@ void HandleDefinition();
 void HandleTopLevelExpression();
 
 void MainLoop();
+
+void execute(const char* filename);

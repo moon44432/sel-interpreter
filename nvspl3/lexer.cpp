@@ -6,15 +6,20 @@
 #include <iostream>
 
 std::string IdentifierStr;
+std::string MainCode;
 double NumVal;
 int LastChar = ' ';
 
+static int idx = 0;
 
 int gettok()
 {
     // Skip any whitespace.
     while (isspace(LastChar))
-        LastChar = getchar();
+    {
+        if (IsInteractive) LastChar = getchar();
+        else LastChar = MainCode[idx++];
+    }
 
     if (isalpha(LastChar) || LastChar == '_') // identifier: [a-zA-Z_][a-zA-Z0-9_]*
     { 
@@ -22,7 +27,9 @@ int gettok()
         
         while (true)
         {
-            LastChar = getchar();
+            if (IsInteractive) LastChar = getchar();
+            else LastChar = MainCode[idx++];
+
             if (isalnum(LastChar) || LastChar == '_') IdentifierStr += LastChar;
             else break;
         }
@@ -56,7 +63,9 @@ int gettok()
         do
         {
             NumStr += LastChar;
-            LastChar = getchar();
+
+            if (IsInteractive) LastChar = getchar();
+            else LastChar = MainCode[idx++];
         } while (isdigit(LastChar) || LastChar == '.');
 
         NumVal = strtod(NumStr.c_str(), nullptr);
@@ -67,7 +76,8 @@ int gettok()
     {
         // Comment until end of line.
         do
-            LastChar = getchar();
+            if (IsInteractive) LastChar = getchar();
+            else LastChar = MainCode[idx++];
         while (LastChar != EOF && LastChar != '\n' && LastChar != '\r');
 
         if (LastChar != EOF)
@@ -76,12 +86,14 @@ int gettok()
 
     if (LastChar == '{')
     {
-        LastChar = getchar();
+        if (IsInteractive) LastChar = getchar();
+        else LastChar = MainCode[idx++];
         return tok_openblock;
     }
     if (LastChar == '}')
     {
-        LastChar = getchar();
+        if (IsInteractive) LastChar = getchar();
+        else LastChar = MainCode[idx++];
         return tok_closeblock;
     }
 
@@ -91,6 +103,7 @@ int gettok()
 
     // Otherwise, just return the character as its ascii value.
     int ThisChar = LastChar;
-    LastChar = getchar();
+    if (IsInteractive) LastChar = getchar();
+    else LastChar = MainCode[idx++];
     return ThisChar;
 }

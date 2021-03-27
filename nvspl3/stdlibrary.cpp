@@ -5,8 +5,6 @@
 #include "stdlibrary.h"
 #include "execute.h"
 
-#pragma warning (disable:4996)
-
 std::vector<std::string> StdFuncList = {
 	"print",
 	"println",

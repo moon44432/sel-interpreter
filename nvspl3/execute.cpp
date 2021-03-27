@@ -13,6 +13,8 @@ static std::vector<std::map<std::string, std::vector<int>>> ArrTable(1);
 static std::map<std::string, std::shared_ptr<FunctionAST>> Functions;
 static Memory StackMemory;
 
+bool IsInteractive = true; // true for default
+
 Value LogErrorV(const char* Str) {
     LogError(Str);
     return Value(true);
@@ -268,7 +270,7 @@ Value CallExprAST::execute(int lvl, int stackIdx)
     if (std::find(StdFuncList.begin(), StdFuncList.end(), Callee) != StdFuncList.end())
     {
         Value RetVal = CallStdFunc(Callee, ArgsV);
-        fprintf(stderr, "\n");
+        if (IsInteractive) fprintf(stderr, "\n");
         return RetVal;
     }
 
@@ -469,7 +471,7 @@ void HandleDefinition()
 {
     if (auto FnAST = ParseDefinition())
     {
-        fprintf(stderr, "Read function definition\n");
+        if (IsInteractive) fprintf(stderr, "Read function definition\n");
         Functions[FnAST->getFuncName()] = FnAST;
     }
     else getNextToken(); // Skip token for error recovery.
@@ -484,7 +486,7 @@ void HandleTopLevelExpression()
         if (!RetVal.isEmpty())
         {
             double FP = RetVal.getVal();
-            fprintf(stderr, "Evaluated to %f\n", FP);
+            if (IsInteractive) fprintf(stderr, "Evaluated to %f\n", FP);
         }
     }
     else getNextToken(); // Skip token for error recovery.
@@ -495,7 +497,7 @@ void MainLoop()
 {
     while (true)
     {
-        fprintf(stderr, ">>> ");
+        if (IsInteractive) fprintf(stderr, ">>> ");
         switch (CurTok)
         {
         case tok_eof:
@@ -511,4 +513,23 @@ void MainLoop()
             break;
         }
     }
+}
+
+void execute(const char* filename)
+{
+    IsInteractive = false;
+
+    FILE* fp = fopen(filename, "r");
+    if (fp == NULL)
+    {
+        fprintf(stderr, "Error: Unknown file name\n");
+        return;
+    }
+    while (!feof(fp)) MainCode += (char)fgetc(fp);
+    MainCode += EOF;
+    fclose(fp);
+
+    binopPrecInit();
+    getNextToken();
+    MainLoop();
 }
