@@ -22,22 +22,22 @@ extern std::string OpChrList;
 
 typedef enum
 {
-    VOID = 0,
+    _VOID = 0,
     // INT = 1,
-    DOUBLE = 2,
+    _DOUBLE = 2,
 } type;
 
 class Value
 {
-    char Type = DOUBLE;
+    char Type = _DOUBLE;
     double Val = 0.0;
 public:
     Value(double Val) : Val(Val) {}
-    Value(bool isErr) { if (isErr) Type = VOID; }
+    Value(bool isErr) { if (isErr) Type = _VOID; }
     Value() {}
     void updateVal(double dVal) { Val = dVal; }
     double getVal() { return Val; }
-    bool isEmpty() { return (Type == VOID); }
+    bool isEmpty() { return (Type == _VOID); }
 };
 
 /// ExprAST - Base class for all expression nodes.

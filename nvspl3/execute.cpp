@@ -6,7 +6,7 @@
 #include "parser.h"
 #include "execute.h"
 #include "stdlibrary.h"
-#include <iostream>
+#include <Windows.h>
 
 static std::vector<std::map<std::string, int>> AddrTable(1);
 static std::vector<std::map<std::string, std::vector<int>>> ArrTable(1);
@@ -529,7 +529,12 @@ void execute(const char* filename)
     MainCode += EOF;
     fclose(fp);
 
+    DWORD t = GetTickCount();
+
     binopPrecInit();
     getNextToken();
     MainLoop();
+
+    DWORD diff = (GetTickCount() - t);
+    fprintf(stderr, "\nExecution finished (%.3lfs).\n", (double)diff / 1000);
 }
