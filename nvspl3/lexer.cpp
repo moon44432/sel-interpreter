@@ -46,6 +46,8 @@ int gettok()
             return tok_else;
         if (IdentifierStr == "for")
             return tok_for;
+        if (IdentifierStr == "while")
+            return tok_while;
         if (IdentifierStr == "binary")
             return tok_binary;
         if (IdentifierStr == "unary")

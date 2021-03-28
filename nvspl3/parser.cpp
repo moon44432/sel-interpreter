@@ -257,6 +257,22 @@ std::shared_ptr<ExprAST> ParseForExpr()
         std::move(Step), std::move(Body));
 }
 
+/// whileexpr
+std::shared_ptr<ExprAST> ParseWhileExpr()
+{
+    getNextToken(); // eat the while.
+
+    auto Cond = ParseExpression();
+    if (!Cond)
+        return nullptr;
+
+    auto Body = ParseBlockExpression();
+    if (!Body)
+        return nullptr;
+
+    return std::make_shared<WhileExprAST>(std::move(Cond), std::move(Body));
+}
+
 std::shared_ptr<ExprAST> ParseRepeatExpr()
 {
     getNextToken(); // eat the rept.
@@ -299,6 +315,8 @@ std::shared_ptr<ExprAST> ParsePrimary()
         return ParseNumberExpr();
     case tok_for:
         return ParseForExpr();
+    case tok_while:
+        return ParseWhileExpr();
     case tok_if:
         return ParseIfExpr();
     case tok_repeat:

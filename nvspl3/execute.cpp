@@ -379,6 +379,32 @@ Value ForExprAST::execute(int lvl, int stackIdx)
     return RetVal;
 }
 
+Value WhileExprAST::execute(int lvl, int stackIdx)
+{
+    int StartIdx = StackMemory.getSize();
+    AddrTable.push_back(std::map<std::string, int>());
+    ArrTable.push_back(std::map<std::string, std::vector<int>>());
+
+    while (true)
+    {
+        Value EndCond = Cond->execute(lvl, stackIdx);
+        if (EndCond.isEmpty())
+            return Value(true);
+
+        if (!(bool)EndCond.getVal()) break;
+
+        Value BodyExpr = Body->execute(lvl + 1, StartIdx);
+        if (BodyExpr.isEmpty())
+            return Value(true);
+    }
+    AddrTable.pop_back();
+    ArrTable.pop_back();
+    StackMemory.quickDelete(StartIdx);
+
+    Value RetVal(0.0);
+    return RetVal;
+}
+
 Value RepeatExprAST::execute(int lvl, int stackIdx)
 {
     Value Iter = IterNum->execute(lvl, stackIdx);

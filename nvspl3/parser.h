@@ -140,6 +140,16 @@ public:
     Value execute(int lvl, int stackIdx) override;
 };
 
+/// WhileExprAST - Expression class for while.
+class WhileExprAST : public ExprAST {
+    std::shared_ptr<ExprAST> Cond, Body;
+
+public:
+    WhileExprAST(std::shared_ptr<ExprAST> Cond, std::shared_ptr<ExprAST> Body)
+        : Cond(std::move(Cond)), Body(std::move(Body)) {}
+    Value execute(int lvl, int stackIdx) override;
+};
+
 /// RepeatExprAST - Expression class for rept.
 class RepeatExprAST : public ExprAST {
     std::shared_ptr<ExprAST> IterNum;
