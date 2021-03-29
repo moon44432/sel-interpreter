@@ -9,3 +9,5 @@
 #include "execute.h"
 
 void runInteractiveShell();
+
+void runHelp();

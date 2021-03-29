@@ -33,3 +33,8 @@ void runInteractiveShell()
     // Run the main "interpreter loop" now.
     MainLoop();
 }
+
+void runHelp()
+{
+    fprintf(stderr, "Welcome to NVSPL3 help utility.\n");
+}

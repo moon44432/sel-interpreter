@@ -37,6 +37,9 @@ enum Token
     // block
     tok_openblock = -90,
     tok_closeblock = -91,
+
+    // interactive mode commands
+    cmd_help = -201,
 };
 
 extern std::string IdentifierStr;

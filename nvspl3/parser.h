@@ -123,6 +123,8 @@ public:
     IfExprAST(std::shared_ptr<ExprAST> Cond, std::shared_ptr<ExprAST> Then,
         std::shared_ptr<ExprAST> Else)
         : Cond(std::move(Cond)), Then(std::move(Then)), Else(std::move(Else)) {}
+    IfExprAST(std::shared_ptr<ExprAST> Cond, std::shared_ptr<ExprAST> Then)
+        : Cond(std::move(Cond)), Then(std::move(Then)) { Else = nullptr; }
     Value execute(int lvl, int stackIdx) override;
 };
 

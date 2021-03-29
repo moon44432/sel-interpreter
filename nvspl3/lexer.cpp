@@ -56,6 +56,10 @@ int gettok()
             return tok_arr;
         if (IdentifierStr == "rept")
             return tok_repeat;
+
+        if (IdentifierStr == "help")
+            return cmd_help;
+
         return tok_identifier;
     }
 

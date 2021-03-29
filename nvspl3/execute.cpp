@@ -6,6 +6,7 @@
 #include "parser.h"
 #include "execute.h"
 #include "stdlibrary.h"
+#include "interactiveMode.h"
 #include <Windows.h>
 
 static std::vector<std::map<std::string, int>> AddrTable(1);
@@ -307,7 +308,7 @@ Value IfExprAST::execute(int lvl, int stackIdx)
             return Value(true);
         return ThenV;
     }
-    else
+    else if (Else != nullptr)
     {
         Value ElseV = Else->execute(lvl + 1, StartIdx);
         AddrTable.pop_back();
@@ -318,6 +319,7 @@ Value IfExprAST::execute(int lvl, int stackIdx)
             return Value(true);
         return ElseV;
     }
+    else return Value(0.0);
 }
 
 Value ForExprAST::execute(int lvl, int stackIdx)
@@ -533,6 +535,13 @@ void MainLoop()
             break;
         case tok_def:
             HandleDefinition();
+            break;
+        case cmd_help:
+            if (IsInteractive)
+            {
+                getNextToken();
+                runHelp();
+            }
             break;
         default:
             HandleTopLevelExpression();

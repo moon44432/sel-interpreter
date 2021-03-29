@@ -193,17 +193,18 @@ std::shared_ptr<ExprAST> ParseIfExpr()
     if (!Then)
         return nullptr;
 
-    if (CurTok != tok_else)
-        return LogError("expected else");
+    if (CurTok == tok_else)
+    {
+        getNextToken();
 
-    getNextToken();
+        auto Else = ParseBlockExpression();
+        if (!Else)
+            return nullptr;
 
-    auto Else = ParseBlockExpression();
-    if (!Else)
-        return nullptr;
-
-    return std::make_shared<IfExprAST>(std::move(Cond), std::move(Then),
-        std::move(Else));
+        return std::make_shared<IfExprAST>(std::move(Cond), std::move(Then),
+            std::move(Else));
+    }
+    else return std::make_shared<IfExprAST>(std::move(Cond), std::move(Then));
 }
 
 /// forexpr ::= 'for' identifier '=' expr ',' expr (',' expr)? 'in' expression
