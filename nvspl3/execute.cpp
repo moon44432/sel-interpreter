@@ -94,7 +94,7 @@ Value UnaryExprAST::execute(int lvl, int stackIdx)
     switch (Opcode)
     {
     case '!':
-        RetVal = Value(!(bool)(OperandV.getVal()));
+        RetVal = Value((double)(!(bool)(OperandV.getVal())));
         return RetVal;
         break;
     case '+':
