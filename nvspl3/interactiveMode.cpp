@@ -1,12 +1,12 @@
 
-// NVSPL3 Language Project
+// SEL Project
 // interactiveMode.cpp
 
 #include "interactiveMode.h"
 
 void runInteractiveShell()
 {
-    std::string VerStr = "NVSPL3 alpha ";
+    std::string VerStr = "SEL alpha ";
     #ifdef _WIN32
     #ifdef _WIN64
     #ifdef _M_X64
@@ -26,7 +26,7 @@ void runInteractiveShell()
 
     // Prime the first token.
     fprintf(stderr, (VerStr + " Interactive Shell\n").c_str());
-    fprintf(stderr, "Type \"help;\" for help. Visit https://github.com/moon44432/nvspl3-interpreter for more information.\n\n");
+    fprintf(stderr, "Type \"help;\" for help. Visit https://github.com/moon44432/sel-interpreter for more information.\n\n");
     fprintf(stderr, ">>> ");
     getNextToken();
 
@@ -36,5 +36,5 @@ void runInteractiveShell()
 
 void runHelp()
 {
-    fprintf(stderr, "Welcome to NVSPL3 help utility.\n");
+    fprintf(stderr, "Welcome to SEL help utility.\n");
 }

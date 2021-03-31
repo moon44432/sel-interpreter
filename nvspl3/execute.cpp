@@ -1,5 +1,5 @@
 
-// NVSPL3 Language Project
+// SEL Project
 // execute.cpp
 
 #include "lexer.h"
@@ -8,6 +8,7 @@
 #include "stdlibrary.h"
 #include "interactiveMode.h"
 #include <Windows.h>
+#include <cmath>
 
 static std::vector<std::map<std::string, int>> AddrTable(1);
 static std::vector<std::map<std::string, std::vector<int>>> ArrTable(1);
@@ -196,53 +197,55 @@ Value BinaryExprAST::execute(int lvl, int stackIdx) {
     }
     if (Op == "==")
     {
-        Value RetVal((double)(L.getVal() == R.getVal()));
-        return RetVal;
+        return Value((double)(L.getVal() == R.getVal()));
     }
     if (Op == "!=")
     {
-        Value RetVal((double)(L.getVal() != R.getVal()));
-        return RetVal;
+        return Value((double)(L.getVal() != R.getVal()));
+    }
+    if (Op == "&&")
+    {
+        return Value((double)(L.getVal() && R.getVal()));
+    }
+    if (Op == "||")
+    {
+        return Value((double)(L.getVal() || R.getVal()));
     }
     if (Op == "<")
     {
-        Value RetVal((double)(L.getVal() < R.getVal()));
-        return RetVal;
+        return Value((double)(L.getVal() < R.getVal()));
     }
     if (Op == ">")
     {
-        Value RetVal((double)(L.getVal() > R.getVal()));
-        return RetVal;
+        return Value((double)(L.getVal() > R.getVal()));
     }
     if (Op == "<=") 
     {
-        Value RetVal((double)(L.getVal() <= R.getVal()));
-        return RetVal;
+        return Value((double)(L.getVal() <= R.getVal()));
     }
     if (Op == ">=")
     {
-        Value RetVal((double)(L.getVal() >= R.getVal()));
-        return RetVal;
+        return Value((double)(L.getVal() >= R.getVal()));
     }
     if (Op == "+")
     {
-        Value RetVal((double)(L.getVal() + R.getVal()));
-        return RetVal;
+        return Value((double)(L.getVal() + R.getVal()));
     }
     if (Op == "-") 
     {
-        Value RetVal((double)(L.getVal() - R.getVal()));
-        return RetVal;
+        return Value((double)(L.getVal() - R.getVal()));
     }
     if (Op == "*")
     {
-        Value RetVal((double)(L.getVal() * R.getVal()));
-        return RetVal;
+        return Value((double)(L.getVal() * R.getVal()));
     }
     if (Op == "/")
     {
-        Value RetVal((double)(L.getVal() / R.getVal()));
-        return RetVal;
+        return Value((double)(L.getVal() / R.getVal()));
+    }
+    if (Op == "%")
+    {
+        return Value(fmod(L.getVal(), R.getVal()));
     }
 
     // If it wasn't a builtin binary operator, it must be a user defined one. Emit

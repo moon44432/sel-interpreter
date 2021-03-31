@@ -1,9 +1,10 @@
 
-// NVSPL3 Language Project
+// SEL Project
 // lexer.cpp
 
 #include "lexer.h"
 #include <iostream>
+#include <cctype>
 
 std::string IdentifierStr;
 std::string MainCode;

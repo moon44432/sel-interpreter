@@ -1,5 +1,5 @@
 
-// NVSPL3 Language Project
+// SEL Project
 // main.cpp
 
 #include "parser.h"

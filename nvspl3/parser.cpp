@@ -1,5 +1,5 @@
 
-// NVSPL3 Language Project
+// SEL Project
 // parser.cpp
 
 #include "parser.h"
@@ -12,17 +12,20 @@ std::string OpChrList = "<>+-*/%^!~?&|:=";
 
 void binopPrecInit()
 {
-    BinopPrecedence["="] = 18 - 17;
-    BinopPrecedence["=="] = 18 - 10;
-    BinopPrecedence["!="] = 18 - 10;
-    BinopPrecedence["<"] = 18 - 9;
-    BinopPrecedence[">"] = 18 - 9;
-    BinopPrecedence["<="] = 18 - 9;
-    BinopPrecedence[">="] = 18 - 9;
-    BinopPrecedence["+"] = 18 - 7;
-    BinopPrecedence["-"] = 18 - 7;
-    BinopPrecedence["*"] = 18 - 3;
-    BinopPrecedence["/"] = 18 - 3;
+    BinopPrecedence["*"] = 18 - 5; // highest
+    BinopPrecedence["/"] = 18 - 5;
+    BinopPrecedence["%"] = 18 - 5;
+    BinopPrecedence["+"] = 18 - 6;
+    BinopPrecedence["-"] = 18 - 6;
+    BinopPrecedence["<"] = 18 - 8;
+    BinopPrecedence[">"] = 18 - 8;
+    BinopPrecedence["<="] = 18 - 8;
+    BinopPrecedence[">="] = 18 - 8;
+    BinopPrecedence["=="] = 18 - 9;
+    BinopPrecedence["!="] = 18 - 9;
+    BinopPrecedence["&&"] = 18 - 13;
+    BinopPrecedence["||"] = 18 - 14;
+    BinopPrecedence["="] = 18 - 15; // lowest
 }
 
 int getNextToken()
@@ -351,6 +354,7 @@ std::shared_ptr<ExprAST> ParseUnary()
 ///   ::= ('+' unary)*
 std::shared_ptr<ExprAST> ParseBinOpRHS(int ExprPrec, std::shared_ptr<ExprAST> LHS)
 {
+    bool DoubleCh = false;
     // If this is a binop, find its precedence.
     while (true)
     {
@@ -361,7 +365,7 @@ std::shared_ptr<ExprAST> ParseBinOpRHS(int ExprPrec, std::shared_ptr<ExprAST> LH
             OpChrList.find(LastChar) != std::string::npos)
         {
             BinOp += (char)LastChar;
-            getNextToken();
+            DoubleCh = true;
         }
         int TokPrec = GetTokPrecedence(BinOp);
 
@@ -371,6 +375,7 @@ std::shared_ptr<ExprAST> ParseBinOpRHS(int ExprPrec, std::shared_ptr<ExprAST> LH
             return LHS;
 
         getNextToken();
+        if (DoubleCh) getNextToken();
 
         // Parse the unary expression after the binary operator.
         auto RHS = ParseUnary();
