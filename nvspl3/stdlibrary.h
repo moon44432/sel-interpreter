@@ -5,7 +5,7 @@
 #pragma once
 #pragma warning (disable:4996)
 
-#include "parser.h"
+#include "ast.h"
 
 extern std::vector<std::string> StdFuncList;
 

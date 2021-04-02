@@ -2,7 +2,7 @@
 // SEL Project
 // parser.cpp
 
-#include "parser.h"
+#include "ast.h"
 #include "lexer.h"
 #include <iostream>
 

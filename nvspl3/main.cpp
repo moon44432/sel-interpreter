@@ -2,7 +2,7 @@
 // SEL Project
 // main.cpp
 
-#include "parser.h"
+#include "ast.h"
 #include "execute.h"
 #include "interactiveMode.h"
 

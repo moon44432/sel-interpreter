@@ -5,7 +5,7 @@
 #pragma once
 
 #include "lexer.h"
-#include "parser.h"
+#include "ast.h"
 #include "execute.h"
 
 void runInteractiveShell();

@@ -3,7 +3,7 @@
 // execute.cpp
 
 #include "lexer.h"
-#include "parser.h"
+#include "ast.h"
 #include "execute.h"
 #include "stdlibrary.h"
 #include "interactiveMode.h"
