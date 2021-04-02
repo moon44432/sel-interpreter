@@ -140,7 +140,7 @@ std::shared_ptr<ExprAST> ParseIdentifierExpr()
     return std::make_shared<CallExprAST>(IdName, std::move(Args));
 }
 
-/// arrdeclexpr
+/// arrdeclexpr ::= 'arr' identifier '[' (number ',')* number ']'
 std::shared_ptr<ExprAST> ParseArrDeclExpr()
 {
     getNextToken(); // eat the arr.
@@ -178,7 +178,7 @@ std::shared_ptr<ExprAST> ParseArrDeclExpr()
     return std::make_shared<ArrDeclExprAST>(IdName, Indices);
 }
 
-/// ifexpr ::= 'if' expression 'then' expression 'else' expression
+/// ifexpr ::= 'if' expression 'then' blockexpr 'else' blockexpr
 std::shared_ptr<ExprAST> ParseIfExpr()
 {
     getNextToken(); // eat the if.
@@ -210,7 +210,7 @@ std::shared_ptr<ExprAST> ParseIfExpr()
     else return std::make_shared<IfExprAST>(std::move(Cond), std::move(Then));
 }
 
-/// forexpr ::= 'for' identifier '=' expr ',' expr (',' expr)? 'in' expression
+/// forexpr ::= 'for' '(' identifier '=' expr ',' expr (',' expr)? ')' blockexpr
 std::shared_ptr<ExprAST> ParseForExpr()
 {
     getNextToken(); // eat the for.
@@ -261,7 +261,7 @@ std::shared_ptr<ExprAST> ParseForExpr()
         std::move(Step), std::move(Body));
 }
 
-/// whileexpr
+/// whileexpr ::= 'while' expr blockexpr
 std::shared_ptr<ExprAST> ParseWhileExpr()
 {
     getNextToken(); // eat the while.
@@ -277,6 +277,7 @@ std::shared_ptr<ExprAST> ParseWhileExpr()
     return std::make_shared<WhileExprAST>(std::move(Cond), std::move(Body));
 }
 
+/// reptexpr ::= 'rept' '(' expr ')' blockexpr
 std::shared_ptr<ExprAST> ParseRepeatExpr()
 {
     getNextToken(); // eat the rept.
@@ -307,6 +308,8 @@ std::shared_ptr<ExprAST> ParseRepeatExpr()
 ///   ::= parenexpr
 ///   ::= ifexpr
 ///   ::= forexpr
+///   ::= whileexpr
+///   ::= reptexpr
 ///   ::= arrexpr
 std::shared_ptr<ExprAST> ParsePrimary()
 {
@@ -334,7 +337,7 @@ std::shared_ptr<ExprAST> ParsePrimary()
 
 /// unary
 ///   ::= primary
-///   ::= '!' unary
+///   ::= unaryop unary
 std::shared_ptr<ExprAST> ParseUnary()
 {
     // If the current token is not an operator, it must be a primary expr.
@@ -351,7 +354,7 @@ std::shared_ptr<ExprAST> ParseUnary()
 }
 
 /// binoprhs
-///   ::= ('+' unary)*
+///   ::= (binop unary)*
 std::shared_ptr<ExprAST> ParseBinOpRHS(int ExprPrec, std::shared_ptr<ExprAST> LHS)
 {
     bool DoubleCh = false;
@@ -408,7 +411,6 @@ std::shared_ptr<ExprAST> ParseBinOpRHS(int ExprPrec, std::shared_ptr<ExprAST> LH
 
 /// expression
 ///   ::= unary binoprhs
-///
 std::shared_ptr<ExprAST> ParseExpression()
 {
     auto LHS = ParseUnary();
@@ -419,6 +421,8 @@ std::shared_ptr<ExprAST> ParseExpression()
 }
 
 /// blockexpr
+///   ::= expression
+///   ::= '{' expression+ '}'
 std::shared_ptr<ExprAST> ParseBlockExpression()
 {
     if (CurTok != tok_openblock)

@@ -91,20 +91,16 @@ Value UnaryExprAST::execute(int lvl, int stackIdx)
     if (OperandV.isEmpty())
         return Value(true);
 
-    Value RetVal;
     switch (Opcode)
     {
     case '!':
-        RetVal = Value((double)(!(bool)(OperandV.getVal())));
-        return RetVal;
+        return Value((double)(!(bool)(OperandV.getVal())));
         break;
     case '+':
-        RetVal = Value(+(OperandV.getVal()));
-        return RetVal;
+        return Value(+(OperandV.getVal()));
         break;
     case '-':
-        RetVal = Value(-(OperandV.getVal()));
-        return RetVal;
+        return Value(-(OperandV.getVal()));
         break;
     }
     /*
@@ -192,61 +188,46 @@ Value BinaryExprAST::execute(int lvl, int stackIdx) {
     Value R = RHS->execute(lvl, stackIdx);
 
     if (L.isEmpty() || R.isEmpty())
-    {
         return Value(true);
-    }
+
     if (Op == "==")
-    {
         return Value((double)(L.getVal() == R.getVal()));
-    }
+
     if (Op == "!=")
-    {
         return Value((double)(L.getVal() != R.getVal()));
-    }
+
     if (Op == "&&")
-    {
         return Value((double)(L.getVal() && R.getVal()));
-    }
+
     if (Op == "||")
-    {
         return Value((double)(L.getVal() || R.getVal()));
-    }
+
     if (Op == "<")
-    {
         return Value((double)(L.getVal() < R.getVal()));
-    }
+
     if (Op == ">")
-    {
         return Value((double)(L.getVal() > R.getVal()));
-    }
+
     if (Op == "<=") 
-    {
         return Value((double)(L.getVal() <= R.getVal()));
-    }
+
     if (Op == ">=")
-    {
         return Value((double)(L.getVal() >= R.getVal()));
-    }
+
     if (Op == "+")
-    {
         return Value((double)(L.getVal() + R.getVal()));
-    }
+
     if (Op == "-") 
-    {
         return Value((double)(L.getVal() - R.getVal()));
-    }
+
     if (Op == "*")
-    {
         return Value((double)(L.getVal() * R.getVal()));
-    }
+
     if (Op == "/")
-    {
         return Value((double)(L.getVal() / R.getVal()));
-    }
+
     if (Op == "%")
-    {
         return Value(fmod(L.getVal(), R.getVal()));
-    }
 
     // If it wasn't a builtin binary operator, it must be a user defined one. Emit
     // a call to it.
@@ -477,7 +458,7 @@ Value FunctionAST::execute(std::vector<Value> Ops, int lvl, int stackIdx)
         else AddrTable[lvl][Arg[i]] = StackMemory.addValue(Ops[i]);
     }
 
-    Value RetVal;
+    Value RetVal(true);
     if (lvl > 0) RetVal = Body->execute(lvl + 1, StackMemory.getSize());
     else RetVal = Body->execute(lvl, StackMemory.getSize());
 

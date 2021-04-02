@@ -34,7 +34,6 @@ class Value
 public:
     Value(double Val) : Val(Val) {}
     Value(bool isErr) { if (isErr) Type = _VOID; }
-    Value() {}
     void updateVal(double dVal) { Val = dVal; }
     double getVal() { return Val; }
     bool isEmpty() { return (Type == _VOID); }
@@ -70,7 +69,7 @@ public:
     Value execute(int lvl, int stackIdx) override;
 };
 
-/// ArrDeclExprAST
+/// ArrDeclExprAST - Expression class for declaring an array, like "arr[2,2,2]".
 class ArrDeclExprAST : public ExprAST {
     std::string Name;
     std::vector<int> Indices;
