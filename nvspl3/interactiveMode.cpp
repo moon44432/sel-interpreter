@@ -6,7 +6,7 @@
 
 void runInteractiveShell()
 {
-    std::string VerStr = "SEL alpha ";
+    std::string VerStr = "SEL v0.1.0 ";
     #ifdef _WIN32
     #ifdef _WIN64
     #ifdef _M_X64
