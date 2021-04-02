@@ -9,6 +9,7 @@
 #include "interactiveMode.h"
 #include <Windows.h>
 #include <cmath>
+#include <iostream>
 
 static std::vector<std::map<std::string, int>> AddrTable(1);
 static std::vector<std::map<std::string, std::vector<int>>> ArrTable(1);
@@ -228,6 +229,9 @@ Value BinaryExprAST::execute(int lvl, int stackIdx) {
 
     if (Op == "%")
         return Value(fmod(L.getVal(), R.getVal()));
+
+    if (Op == "**")
+        return Value(pow(L.getVal(), R.getVal()));
 
     // If it wasn't a builtin binary operator, it must be a user defined one. Emit
     // a call to it.
