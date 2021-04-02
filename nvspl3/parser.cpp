@@ -12,7 +12,8 @@ std::string OpChrList = "<>+-*/%^!~?&|:=";
 
 void binopPrecInit()
 {
-    BinopPrecedence["*"] = 18 - 5; // highest
+    BinopPrecedence["**"] = 18 - 4; // highest
+    BinopPrecedence["*"] = 18 - 5;
     BinopPrecedence["/"] = 18 - 5;
     BinopPrecedence["%"] = 18 - 5;
     BinopPrecedence["+"] = 18 - 6;
@@ -357,10 +358,10 @@ std::shared_ptr<ExprAST> ParseUnary()
 ///   ::= (binop unary)*
 std::shared_ptr<ExprAST> ParseBinOpRHS(int ExprPrec, std::shared_ptr<ExprAST> LHS)
 {
-    bool DoubleCh = false;
     // If this is a binop, find its precedence.
     while (true)
     {
+        bool DoubleCh = false;
         std::string BinOp;
         BinOp += (char)CurTok;
 
@@ -397,10 +398,10 @@ std::shared_ptr<ExprAST> ParseBinOpRHS(int ExprPrec, std::shared_ptr<ExprAST> LH
         }
 
         int NextPrec = GetTokPrecedence(NextOp);
-        if (TokPrec < NextPrec) {
+        if (TokPrec < NextPrec)
+        {
             RHS = ParseBinOpRHS(TokPrec + 1, std::move(RHS));
-            if (!RHS)
-                return nullptr;
+            if (!RHS) return nullptr;
         }
 
         // Merge LHS/RHS.
