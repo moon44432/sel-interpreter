@@ -9,7 +9,8 @@
 
 int CurTok;
 std::map<std::string, int> BinopPrecedence;
-std::string OpChrList = "<>+-*/%^!~?&|:=";
+std::string BinOpChr = "<>+-*/%!&|=";
+std::string UnaryOpChr = "!+-";
 
 void binopPrecInit()
 {
@@ -152,8 +153,8 @@ std::shared_ptr<ExprAST> ParseArrDeclExpr()
     std::string IdName = IdentifierStr;
     getNextToken();
 
-    if (CurTok != '[')
-        return LogError("expected '[' after array name");
+    if (CurTok != '[') return LogError("expected '[' after array name");
+
     getNextToken();
 
     std::vector<int> Indices;
@@ -168,6 +169,7 @@ std::shared_ptr<ExprAST> ParseArrDeclExpr()
                 else return LogError("length of each dimension must be 1 or higher");
             }
             else return LogError("length of each dimension must be an integer");
+
             getNextToken();
 
             if (CurTok == ']')
@@ -181,6 +183,7 @@ std::shared_ptr<ExprAST> ParseArrDeclExpr()
     }
     else return LogError("array dimension missing");
 
+    getNextToken();
     return std::make_shared<ArrDeclExprAST>(IdName, Indices);
 }
 
@@ -343,8 +346,13 @@ std::shared_ptr<ExprAST> ParseUnary()
         return ParsePrimary();
 
     // If this is a unary operator, read it.
-    int Opc = CurTok;
-    getNextToken();
+    int Opc;
+    if (UnaryOpChr.find(CurTok) != std::string::npos)
+    {
+        Opc = CurTok;
+        getNextToken();
+    }
+    else return LogError(((std::string)"unknown token '" + (char)CurTok + (std::string)"'").c_str());
 
     if (auto Operand = ParseUnary())
         return std::make_shared<UnaryExprAST>(Opc, std::move(Operand));
@@ -362,8 +370,8 @@ std::shared_ptr<ExprAST> ParseBinOpRHS(int ExprPrec, std::shared_ptr<ExprAST> LH
         std::string BinOp;
         BinOp += (char)CurTok;
 
-        if (OpChrList.find(CurTok) != std::string::npos && 
-            OpChrList.find(LastChar) != std::string::npos)
+        if (BinOpChr.find(CurTok) != std::string::npos && 
+            BinOpChr.find(LastChar) != std::string::npos)
         {
             BinOp += (char)LastChar;
             DoubleCh = true;
@@ -388,8 +396,8 @@ std::shared_ptr<ExprAST> ParseBinOpRHS(int ExprPrec, std::shared_ptr<ExprAST> LH
         std::string NextOp;
         NextOp += (char)CurTok;
 
-        if (OpChrList.find(CurTok) != std::string::npos &&
-            OpChrList.find(LastChar) != std::string::npos)
+        if (BinOpChr.find(CurTok) != std::string::npos &&
+            BinOpChr.find(LastChar) != std::string::npos)
         {
             NextOp += (char)LastChar;
         }
@@ -479,7 +487,7 @@ std::shared_ptr<PrototypeAST> ParsePrototype()
             return LogErrorP("Expected binary operator");
         FnName = "binary";
         FnName += (char)CurTok;
-        if (OpChrList.find(LastChar) != std::string::npos)
+        if (BinOpChr.find(LastChar) != std::string::npos)
         {
             FnName += (char)LastChar;
             getNextToken();
