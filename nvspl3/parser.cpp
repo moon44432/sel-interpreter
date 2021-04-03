@@ -311,7 +311,7 @@ std::shared_ptr<ExprAST> ParseRepeatExpr()
 ///   ::= forexpr
 ///   ::= whileexpr
 ///   ::= reptexpr
-///   ::= arrexpr
+///   ::= arrdeclexpr
 std::shared_ptr<ExprAST> ParsePrimary()
 {
     switch (CurTok) {
