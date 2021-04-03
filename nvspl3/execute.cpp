@@ -259,7 +259,7 @@ Value CallExprAST::execute(int lvl, int stackIdx)
     if (std::find(StdFuncList.begin(), StdFuncList.end(), Callee) != StdFuncList.end())
     {
         Value RetVal = CallStdFunc(Callee, ArgsV);
-        if (IsInteractive) fprintf(stderr, "\n");
+        // if (IsInteractive) fprintf(stderr, "\n");
         return RetVal;
     }
 

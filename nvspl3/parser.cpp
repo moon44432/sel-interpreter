@@ -5,6 +5,7 @@
 #include "ast.h"
 #include "lexer.h"
 #include <iostream>
+#include <cmath>
 
 int CurTok;
 std::map<std::string, int> BinopPrecedence;
@@ -81,6 +82,7 @@ std::shared_ptr<ExprAST> ParseParenExpr()
 
 /// identifierexpr
 ///   ::= identifier
+///   ::= identifier ('[' expression ']')+
 ///   ::= identifier '(' expression* ')'
 std::shared_ptr<ExprAST> ParseIdentifierExpr()
 {
@@ -103,14 +105,15 @@ std::shared_ptr<ExprAST> ParseIdentifierExpr()
                 else return nullptr;
 
                 if (CurTok == ']')
-                    break;
+                {
+                    getNextToken();
 
-                if (CurTok != ',')
-                    return LogError("Expected ']' or ',' in index list");
-                getNextToken();
+                    if (CurTok != '[') break;
+                    else getNextToken();
+                }
             }
         }
-        getNextToken();
+        else return LogError("array index missing");
 
         return std::make_shared<VariableExprAST>(IdName, Indices);
     }
@@ -141,7 +144,7 @@ std::shared_ptr<ExprAST> ParseIdentifierExpr()
     return std::make_shared<CallExprAST>(IdName, std::move(Args));
 }
 
-/// arrdeclexpr ::= 'arr' identifier '[' (number ',')* number ']'
+/// arrdeclexpr ::= 'arr' identifier ('[' number ']')+
 std::shared_ptr<ExprAST> ParseArrDeclExpr()
 {
     getNextToken(); // eat the arr.
@@ -159,7 +162,7 @@ std::shared_ptr<ExprAST> ParseArrDeclExpr()
     {
         while (true)
         {
-            if (CurTok == tok_number)
+            if (CurTok == tok_number && fmod(NumVal, 1.0) == 0)
             {
                 if ((unsigned)NumVal >= 1) Indices.push_back((unsigned)NumVal);
                 else return LogError("length of each dimension must be 1 or higher");
@@ -167,14 +170,16 @@ std::shared_ptr<ExprAST> ParseArrDeclExpr()
             else return LogError("length of each dimension must be an integer");
             getNextToken();
 
-            if (CurTok == ']') break;
+            if (CurTok == ']')
+            {
+                getNextToken();
 
-            if (CurTok != ',')
-                return LogError("expected ']' or ','");
-            getNextToken();
+                if (CurTok != '[') break;
+                else getNextToken();
+            }
         }
     }
-    getNextToken();
+    else return LogError("array dimension missing");
 
     return std::make_shared<ArrDeclExprAST>(IdName, Indices);
 }
@@ -211,14 +216,10 @@ std::shared_ptr<ExprAST> ParseIfExpr()
     else return std::make_shared<IfExprAST>(std::move(Cond), std::move(Then));
 }
 
-/// forexpr ::= 'for' '(' identifier '=' expr ',' expr (',' expr)? ')' blockexpr
+/// forexpr ::= 'for' identifier '=' expr ',' expr (',' expr)? blockexpr
 std::shared_ptr<ExprAST> ParseForExpr()
 {
     getNextToken(); // eat the for.
-
-    if (CurTok != '(')
-        return LogError("expected '(' after for");
-    getNextToken();
 
     if (CurTok != tok_identifier)
         return LogError("expected identifier");
@@ -249,10 +250,6 @@ std::shared_ptr<ExprAST> ParseForExpr()
         if (!Step)
             return nullptr;
     }
-
-    if (CurTok != ')')
-        return LogError("expected ')' after for");
-    getNextToken(); // eat ')'.
 
     auto Body = ParseBlockExpression();
     if (!Body)
