@@ -169,15 +169,15 @@ std::shared_ptr<ExprAST> ParseArrDeclExpr()
                 else return LogError("length of each dimension must be 1 or higher");
             }
             else return LogError("length of each dimension must be an integer");
-
             getNextToken();
 
             if (CurTok == ']')
             {
-                getNextToken();
+                if (LastChar != '[')
+                    break;
 
-                if (CurTok != '[') break;
-                else getNextToken();
+                getNextToken();
+                getNextToken();
             }
         }
     }
