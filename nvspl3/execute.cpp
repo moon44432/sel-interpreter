@@ -18,7 +18,8 @@ static Memory StackMemory;
 
 bool IsInteractive = true; // true for default
 
-Value LogErrorV(const char* Str) {
+Value LogErrorV(const char* Str)
+{
     LogError(Str);
     return Value(true);
 }
@@ -259,7 +260,6 @@ Value CallExprAST::execute(int lvl, int stackIdx)
     if (std::find(StdFuncList.begin(), StdFuncList.end(), Callee) != StdFuncList.end())
     {
         Value RetVal = CallStdFunc(Callee, ArgsV);
-        // if (IsInteractive) fprintf(stderr, "\n");
         return RetVal;
     }
 

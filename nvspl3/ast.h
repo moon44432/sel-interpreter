@@ -18,7 +18,7 @@
 
 extern int CurTok;
 extern std::map<std::string, int> BinopPrecedence;
-extern std::string OpChrList;
+extern std::string BinOpChr;
 
 typedef enum
 {
