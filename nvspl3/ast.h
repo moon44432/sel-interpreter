@@ -18,7 +18,7 @@
 
 extern int CurTok;
 extern std::map<std::string, int> BinopPrecedence;
-extern std::string BinOpChr;
+extern std::string OpChr;
 
 typedef enum
 {
@@ -200,7 +200,6 @@ public:
     }
 
     unsigned getBinaryPrecedence() const { return Precedence; }
-    Value execute(int lvl, int stackIdx);
     const int getArgsSize() const { return Args.size(); }
     const std::vector<std::string>& getArgs() const { return Args; }
 };

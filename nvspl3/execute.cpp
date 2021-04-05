@@ -105,16 +105,14 @@ Value UnaryExprAST::execute(int lvl, int stackIdx)
         return Value(-(OperandV.getVal()));
         break;
     }
-    /*
+
     std::shared_ptr<FunctionAST> F = Functions[(std::string("unary") + Opcode)];
-    if (!F)
-        return LogErrorV("Unknown unary operator");
+    if (!F) return LogErrorV("Unknown unary operator");
 
     std::vector<Value> Op;
     Op.push_back(OperandV);
 
-    return F->execute(Op);
-    */
+    return F->execute(Op, lvl, stackIdx);
 }
 
 Value BinaryExprAST::execute(int lvl, int stackIdx) {
@@ -236,16 +234,15 @@ Value BinaryExprAST::execute(int lvl, int stackIdx) {
 
     // If it wasn't a builtin binary operator, it must be a user defined one. Emit
     // a call to it.
-    /*
+    
     std::shared_ptr<FunctionAST> F = Functions[(std::string("binary") + Op)];
-    assert(F && "binary operator not found!");
+    if (!F) return LogErrorV("binary operator not found!");
 
     std::vector<Value> Ops;
     Ops.push_back(L);
     Ops.push_back(R);
 
-    return F->execute(Ops);
-    */
+    return F->execute(Ops, lvl, stackIdx);
 }
 
 Value CallExprAST::execute(int lvl, int stackIdx)
@@ -436,18 +433,8 @@ Value BlockExprAST::execute(int lvl, int stackIdx)
     return RetVal;
 }
 
-Value PrototypeAST::execute(int lvl, int stackIdx)
-{
-    Value RetVal(0.0);
-    return RetVal;
-}
-
 Value FunctionAST::execute(std::vector<Value> Ops, int lvl, int stackIdx)
 {
-    // If this is an operator, install it.
-    if (Proto->isBinaryOp())
-        BinopPrecedence[Proto->getOperatorName()] = Proto->getBinaryPrecedence();
-
     int StartIdx = StackMemory.getSize();
     if (lvl > 0)
     {

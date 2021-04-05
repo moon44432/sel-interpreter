@@ -9,8 +9,7 @@
 
 int CurTok;
 std::map<std::string, int> BinopPrecedence;
-std::string BinOpChr = "<>+-*/%!&|=";
-std::string UnaryOpChr = "!+-";
+std::string OpChr = "<>+-*/%!&|=";
 
 void binopPrecInit()
 {
@@ -347,7 +346,7 @@ std::shared_ptr<ExprAST> ParseUnary()
 
     // If this is a unary operator, read it.
     int Opc;
-    if (UnaryOpChr.find(CurTok) != std::string::npos)
+    if (OpChr.find(CurTok) != std::string::npos)
     {
         Opc = CurTok;
         getNextToken();
@@ -370,8 +369,8 @@ std::shared_ptr<ExprAST> ParseBinOpRHS(int ExprPrec, std::shared_ptr<ExprAST> LH
         std::string BinOp;
         BinOp += (char)CurTok;
 
-        if (BinOpChr.find(CurTok) != std::string::npos && 
-            BinOpChr.find(LastChar) != std::string::npos)
+        if (OpChr.find(CurTok) != std::string::npos && 
+            OpChr.find(LastChar) != std::string::npos)
         {
             BinOp += (char)LastChar;
             DoubleCh = true;
@@ -396,8 +395,8 @@ std::shared_ptr<ExprAST> ParseBinOpRHS(int ExprPrec, std::shared_ptr<ExprAST> LH
         std::string NextOp;
         NextOp += (char)CurTok;
 
-        if (BinOpChr.find(CurTok) != std::string::npos &&
-            BinOpChr.find(LastChar) != std::string::npos)
+        if (OpChr.find(CurTok) != std::string::npos &&
+            OpChr.find(LastChar) != std::string::npos)
         {
             NextOp += (char)LastChar;
         }
@@ -455,14 +454,14 @@ std::shared_ptr<ExprAST> ParseBlockExpression()
 
 /// prototype
 ///   ::= id '(' id* ')'
-///   ::= binary LETTER number? (id, id)
+///   ::= binary LETTER(LETTER)? number? (id, id)
 ///   ::= unary LETTER (id)
 std::shared_ptr<PrototypeAST> ParsePrototype()
 {
     std::string FnName;
 
     unsigned Kind = 0; // 0 = identifier, 1 = unary, 2 = binary.
-    unsigned BinaryPrecedence = 30;
+    unsigned BinaryPrecedence = 18;
 
     switch (CurTok) {
     default:
@@ -485,23 +484,29 @@ std::shared_ptr<PrototypeAST> ParsePrototype()
         getNextToken();
         if (!isascii(CurTok))
             return LogErrorP("Expected binary operator");
-        FnName = "binary";
-        FnName += (char)CurTok;
-        if (BinOpChr.find(LastChar) != std::string::npos)
+
+        std::string OpName;
+        OpName += (char)CurTok;
+        getNextToken();
+        if (OpChr.find(CurTok) != std::string::npos)
         {
-            FnName += (char)LastChar;
+            OpName += (char)CurTok;
             getNextToken();
         }
         Kind = 2;
-        getNextToken();
 
         // Read the precedence if present.
         if (CurTok == tok_number) {
-            if (NumVal < 1 || NumVal > 100)
-                return LogErrorP("Invalid precedence: must be 1~100");
+            if (NumVal < 1 || NumVal > 18)
+                return LogErrorP("Invalid precedence: must be 1~18");
             BinaryPrecedence = (unsigned)NumVal;
             getNextToken();
         }
+
+        // install binary operator.
+        BinopPrecedence[OpName] = BinaryPrecedence;
+
+        FnName = "binary" + OpName;
         break;
     }
 

@@ -35,6 +35,7 @@ int gettok()
             else break;
         }
 
+        // keywords
         if (IdentifierStr == "func")
             return tok_def;
         if (IdentifierStr == "extern")
@@ -58,6 +59,7 @@ int gettok()
         if (IdentifierStr == "rept")
             return tok_repeat;
 
+        // interactive mode commands
         if (IdentifierStr == "help")
             return cmd_help;
 
