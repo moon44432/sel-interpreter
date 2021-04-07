@@ -21,7 +21,7 @@ bool IsInteractive = true; // true for default
 Value LogErrorV(const char* Str)
 {
     LogError(Str);
-    return Value(_ERR);
+    return Value(type::_ERR);
 }
 
 Value NumberExprAST::execute(int lvl, int stackIdx)
@@ -84,14 +84,14 @@ Value ArrDeclExprAST::execute(int lvl, int stackIdx)
     for (int i = 0; i < Indices.size(); i++) size *= Indices[i];
     for (int i = 0; i < size - 1; i++) StackMemory.addValue(Value(0.0));
 
-    return Value(_ERR);
+    return Value(type::_ERR);
 }
 
 Value UnaryExprAST::execute(int lvl, int stackIdx)
 {
     Value OperandV = Operand->execute(lvl, stackIdx);
     if (OperandV.isErr())
-        return Value(_ERR);
+        return Value(type::_ERR);
 
     switch (Opcode)
     {
@@ -127,7 +127,7 @@ Value BinaryExprAST::execute(int lvl, int stackIdx) {
         Value Val = RHS->execute(lvl, stackIdx);
 
         if (Val.isErr())
-            return Value(_ERR);
+            return Value(type::_ERR);
 
         // Look up the name.
         std::vector<std::shared_ptr<ExprAST>> Indices = LHSE->getIndices();
@@ -188,7 +188,7 @@ Value BinaryExprAST::execute(int lvl, int stackIdx) {
     Value R = RHS->execute(lvl, stackIdx);
 
     if (L.isErr() || R.isErr())
-        return Value(_ERR);
+        return Value(type::_ERR);
 
     if (Op == "==")
         return Value((double)(L.getVal() == R.getVal()));
@@ -251,7 +251,7 @@ Value CallExprAST::execute(int lvl, int stackIdx)
     for (unsigned i = 0, e = Args.size(); i != e; ++i) {
         ArgsV.push_back(Args[i]->execute(lvl, stackIdx));
         if (ArgsV.back().isErr())
-            return Value(_ERR);
+            return Value(type::_ERR);
     }
 
     if (std::find(StdFuncList.begin(), StdFuncList.end(), Callee) != StdFuncList.end())
@@ -276,7 +276,7 @@ Value IfExprAST::execute(int lvl, int stackIdx)
 {
     Value CondV = Cond->execute(lvl, stackIdx);
     if (CondV.isErr())
-        return Value(_ERR);
+        return Value(type::_ERR);
 
     int StartIdx = StackMemory.getSize();
     AddrTable.push_back(std::map<std::string, int>());
@@ -290,7 +290,7 @@ Value IfExprAST::execute(int lvl, int stackIdx)
         StackMemory.quickDelete(StartIdx);
 
         if (ThenV.isErr())
-            return Value(_ERR);
+            return Value(type::_ERR);
         return ThenV;
     }
     else if (Else != nullptr)
@@ -301,7 +301,7 @@ Value IfExprAST::execute(int lvl, int stackIdx)
         StackMemory.quickDelete(StartIdx);
 
         if (ElseV.isErr())
-            return Value(_ERR);
+            return Value(type::_ERR);
         return ElseV;
     }
     else return Value(0.0);
@@ -311,7 +311,7 @@ Value ForExprAST::execute(int lvl, int stackIdx)
 {
     Value StartVal = Start->execute(lvl, stackIdx);
     if (StartVal.isErr())
-        return Value(_ERR);
+        return Value(type::_ERR);
 
     bool found = false;
     int StartValLvl;
@@ -336,7 +336,7 @@ Value ForExprAST::execute(int lvl, int stackIdx)
     if (Step) {
         StepVal = Step->execute(lvl, stackIdx);
         if (StepVal.isErr())
-            return Value(_ERR);
+            return Value(type::_ERR);
     }
 
     int StartIdx = StackMemory.getSize();
@@ -347,13 +347,13 @@ Value ForExprAST::execute(int lvl, int stackIdx)
     {
         Value EndCond = End->execute(lvl, stackIdx);
         if (EndCond.isErr())
-            return Value(_ERR);
+            return Value(type::_ERR);
 
         if (!(bool)EndCond.getVal()) break;
 
         Value BodyExpr = Body->execute(lvl + 1, StartIdx);
         if (BodyExpr.isErr())
-            return Value(_ERR);
+            return Value(type::_ERR);
 
         StackMemory.setValue(AddrTable[StartValLvl][VarName],
             Value(StackMemory.getValue(AddrTable[StartValLvl][VarName]).getVal() + StepVal.getVal()));
@@ -376,13 +376,13 @@ Value WhileExprAST::execute(int lvl, int stackIdx)
     {
         Value EndCond = Cond->execute(lvl, stackIdx);
         if (EndCond.isErr())
-            return Value(_ERR);
+            return Value(type::_ERR);
 
         if (!(bool)EndCond.getVal()) break;
 
         Value BodyExpr = Body->execute(lvl + 1, StartIdx);
         if (BodyExpr.isErr())
-            return Value(_ERR);
+            return Value(type::_ERR);
     }
     AddrTable.pop_back();
     ArrTable.pop_back();
@@ -396,7 +396,7 @@ Value RepeatExprAST::execute(int lvl, int stackIdx)
 {
     Value Iter = IterNum->execute(lvl, stackIdx);
     if (Iter.isErr())
-        return Value(_ERR);
+        return Value(type::_ERR);
 
     int StartIdx = StackMemory.getSize();
     AddrTable.push_back(std::map<std::string, int>());
@@ -406,7 +406,7 @@ Value RepeatExprAST::execute(int lvl, int stackIdx)
     {
         Value BodyExpr = Body->execute(lvl + 1, StackMemory.getSize());
         if (BodyExpr.isErr())
-            return Value(_ERR);
+            return Value(type::_ERR);
     }
 
     AddrTable.pop_back();
@@ -419,7 +419,7 @@ Value RepeatExprAST::execute(int lvl, int stackIdx)
 
 Value BlockExprAST::execute(int lvl, int stackIdx)
 {
-    Value RetVal(_ERR);
+    Value RetVal(type::_ERR);
     int StartIdx = StackMemory.getSize();
     AddrTable.push_back(std::map<std::string, int>());
     ArrTable.push_back(std::map<std::string, std::vector<int>>());
@@ -449,7 +449,7 @@ Value FunctionAST::execute(std::vector<Value> Ops, int lvl, int stackIdx)
         else AddrTable[lvl][Arg[i]] = StackMemory.addValue(Ops[i]);
     }
 
-    Value RetVal(_ERR);
+    Value RetVal(type::_ERR);
     if (lvl > 0) RetVal = Body->execute(lvl + 1, StackMemory.getSize());
     else RetVal = Body->execute(lvl, StackMemory.getSize());
 
@@ -466,7 +466,7 @@ Value FunctionAST::execute(std::vector<Value> Ops, int lvl, int stackIdx)
     if (Proto->isBinaryOp())
         BinopPrecedence.erase(Proto->getOperatorName());
 
-    RetVal = Value(_ERR);
+    RetVal = Value(type::_ERR);
     return RetVal;
 }
 

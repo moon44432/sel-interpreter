@@ -20,7 +20,7 @@ extern int CurTok;
 extern std::map<std::string, int> BinopPrecedence;
 extern std::string OpChr;
 
-typedef enum Type
+typedef enum class Type
 {
     _RET = -3,
     _BREAK = -2,
@@ -32,7 +32,7 @@ typedef enum Type
 
 class Value
 {
-    char Type = _DOUBLE;
+    type Type = type::_DOUBLE;
     double Val = 0.0;
 public:
     Value(double Val) : Val(Val) {}
@@ -40,7 +40,7 @@ public:
     Value(type Type, double Val) : Type(Type), Val(Val) {}
     void updateVal(double dVal) { Val = dVal; }
     double getVal() { return Val; }
-    bool isErr() { return (Type == _ERR); }
+    bool isErr() { return (Type == type::_ERR); }
 };
 
 /// ExprAST - Base class for all expression nodes.
