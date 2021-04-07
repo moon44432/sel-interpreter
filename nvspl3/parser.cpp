@@ -301,6 +301,26 @@ std::shared_ptr<ExprAST> ParseRepeatExpr()
     return std::make_shared<RepeatExprAST>(std::move(IterNum), std::move(Body));
 }
 
+/// breakexpr
+///   ::= 'break'
+std::shared_ptr<ExprAST> ParseBreakExpr()
+{
+    getNextToken(); // eat the break.
+    return std::make_shared<BreakExprAST>();
+}
+
+/// returnexpr
+///   ::= 'return' expr
+std::shared_ptr<ExprAST> ParseReturnExpr()
+{
+    getNextToken(); // eat the return.
+
+    auto Expr = ParseExpression();
+    if (!Expr)
+        return nullptr;
+
+    return std::make_shared<ReturnExprAST>(std::move(Expr));
+}
 
 /// primary
 ///   ::= identifierexpr
@@ -310,7 +330,6 @@ std::shared_ptr<ExprAST> ParseRepeatExpr()
 ///   ::= forexpr
 ///   ::= whileexpr
 ///   ::= reptexpr
-///   ::= arrdeclexpr
 std::shared_ptr<ExprAST> ParsePrimary()
 {
     switch (CurTok) {
@@ -328,8 +347,6 @@ std::shared_ptr<ExprAST> ParsePrimary()
         return ParseIfExpr();
     case tok_repeat:
         return ParseRepeatExpr();
-    case tok_arr:
-        return ParseArrDeclExpr();
     case '(': // must be the last one (for, var, if, etc also use '(')
         return ParseParenExpr();
     }
@@ -416,13 +433,25 @@ std::shared_ptr<ExprAST> ParseBinOpRHS(int ExprPrec, std::shared_ptr<ExprAST> LH
 
 /// expression
 ///   ::= unary binoprhs
+///   ::= arrdeclexpr
+///   ::= breakexpr
+///   ::= returnexpr
 std::shared_ptr<ExprAST> ParseExpression()
 {
-    auto LHS = ParseUnary();
-    if (!LHS)
-        return nullptr;
-
-    return ParseBinOpRHS(0, std::move(LHS));
+    switch (CurTok)
+    {
+    case tok_arr:
+        return ParseArrDeclExpr();
+    case tok_break:
+        return ParseBreakExpr();
+    case tok_return:
+        return ParseReturnExpr();
+    default:
+        auto LHS = ParseUnary();
+        if (!LHS)
+            return nullptr;
+        return ParseBinOpRHS(0, std::move(LHS));
+    }
 }
 
 /// blockexpr

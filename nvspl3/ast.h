@@ -22,7 +22,7 @@ extern std::string OpChr;
 
 typedef enum class Type
 {
-    _RET = -3,
+    _RETURN = -3,
     _BREAK = -2,
     _ERR = -1,
 
@@ -41,6 +41,7 @@ public:
     void updateVal(double dVal) { Val = dVal; }
     double getVal() { return Val; }
     bool isErr() { return (Type == type::_ERR); }
+    type getType() { return Type; }
 };
 
 /// ExprAST - Base class for all expression nodes.
@@ -166,13 +167,28 @@ public:
     Value execute(int lvl, int stackIdx) override;
 };
 
-/// BlockExprAST - Sequence of expressions
+/// BlockExprAST - Sequence of expressions.
 class BlockExprAST : public ExprAST {
     std::vector<std::shared_ptr<ExprAST>> Expressions;
 
 public:
     BlockExprAST(std::vector<std::shared_ptr<ExprAST>> Expressions)
         : Expressions(std::move(Expressions)) {}
+    Value execute(int lvl, int stackIdx) override;
+};
+
+/// BreakExprAST - Expression class for break.
+class BreakExprAST : public ExprAST {
+public:
+    Value execute(int lvl, int stackIdx) override;
+};
+
+/// ReturnExprAST - Expression class for return.
+class ReturnExprAST : public ExprAST {
+    std::shared_ptr<ExprAST> Expr;
+
+public:
+    ReturnExprAST(std::shared_ptr<ExprAST> Expr) : Expr(std::move(Expr)) {}
     Value execute(int lvl, int stackIdx) override;
 };
 
@@ -244,6 +260,10 @@ std::shared_ptr<ExprAST> ParseArrDeclExpr();
 std::shared_ptr<ExprAST> ParseIfExpr();
 
 std::shared_ptr<ExprAST> ParseForExpr();
+
+std::shared_ptr<ExprAST> ParseBreakExpr();
+
+std::shared_ptr<ExprAST> ParseReturnExpr();
 
 std::shared_ptr<ExprAST> ParsePrimary();
 
