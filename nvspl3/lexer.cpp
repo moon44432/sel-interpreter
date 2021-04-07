@@ -58,6 +58,10 @@ int gettok()
             return tok_arr;
         if (IdentifierStr == "rept")
             return tok_repeat;
+        if (IdentifierStr == "break")
+            return tok_break;
+        if (IdentifierStr == "return")
+            return tok_return;
 
         // interactive mode commands
         if (IdentifierStr == "help")

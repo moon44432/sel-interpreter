@@ -20,10 +20,13 @@ extern int CurTok;
 extern std::map<std::string, int> BinopPrecedence;
 extern std::string OpChr;
 
-typedef enum
+typedef enum Type
 {
-    _VOID = 0,
-    // INT = 1,
+    _RET = -3,
+    _BREAK = -2,
+    _ERR = -1,
+
+    _INT = 1,
     _DOUBLE = 2,
 } type;
 
@@ -33,10 +36,11 @@ class Value
     double Val = 0.0;
 public:
     Value(double Val) : Val(Val) {}
-    Value(bool isErr) { if (isErr) Type = _VOID; }
+    Value(type Type) : Type(Type) {}
+    Value(type Type, double Val) : Type(Type), Val(Val) {}
     void updateVal(double dVal) { Val = dVal; }
     double getVal() { return Val; }
-    bool isEmpty() { return (Type == _VOID); }
+    bool isErr() { return (Type == _ERR); }
 };
 
 /// ExprAST - Base class for all expression nodes.
@@ -69,7 +73,7 @@ public:
     Value execute(int lvl, int stackIdx) override;
 };
 
-/// ArrDeclExprAST - Expression class for declaring an array, like "arr[2,2,2]".
+/// ArrDeclExprAST - Expression class for declaring an array, like "arr[2][2][2]".
 class ArrDeclExprAST : public ExprAST {
     std::string Name;
     std::vector<int> Indices;

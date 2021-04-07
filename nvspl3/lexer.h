@@ -25,6 +25,8 @@ enum Token
     tok_for = -9,
     tok_while = -10,
     tok_repeat = -11,
+    tok_break = -12,
+    tok_return = -13,
 
     // operators
     tok_binary = -30,
