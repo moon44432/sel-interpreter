@@ -277,28 +277,32 @@ std::shared_ptr<ExprAST> ParseWhileExpr()
     return std::make_shared<WhileExprAST>(std::move(Cond), std::move(Body));
 }
 
-/// reptexpr ::= 'rept' '(' expr ')' blockexpr
+/// reptexpr ::= 'rept' expr blockexpr
 std::shared_ptr<ExprAST> ParseRepeatExpr()
 {
     getNextToken(); // eat the rept.
 
-    if (CurTok != '(')
-        return LogError("expected '(' after rept");
-    getNextToken();
-
     auto IterNum = ParseExpression();
     if (!IterNum)
         return nullptr;
-
-    if (CurTok != ')')
-        return LogError("expected ')'");
-    getNextToken(); // eat ')'.
 
     auto Body = ParseBlockExpression();
     if (!Body)
         return nullptr;
 
     return std::make_shared<RepeatExprAST>(std::move(IterNum), std::move(Body));
+}
+
+/// loopexpr ::= 'loop' blockexpr
+std::shared_ptr<ExprAST> ParseLoopExpr()
+{
+    getNextToken(); // eat the loop.
+
+    auto Body = ParseBlockExpression();
+    if (!Body)
+        return nullptr;
+
+    return std::make_shared<LoopExprAST>(std::move(Body));
 }
 
 /// breakexpr
@@ -335,6 +339,7 @@ std::shared_ptr<ExprAST> ParseReturnExpr()
 ///   ::= forexpr
 ///   ::= whileexpr
 ///   ::= reptexpr
+///   ::= loopexpr
 std::shared_ptr<ExprAST> ParsePrimary()
 {
     switch (CurTok) {
@@ -352,6 +357,8 @@ std::shared_ptr<ExprAST> ParsePrimary()
         return ParseIfExpr();
     case tok_repeat:
         return ParseRepeatExpr();
+    case tok_loop:
+        return ParseLoopExpr();
     case '(': // must be the last one (for, var, if, etc also use '(')
         return ParseParenExpr();
     }

@@ -40,6 +40,8 @@ int gettok()
             return tok_def;
         if (IdentifierStr == "extern")
             return tok_extern;
+        if (IdentifierStr == "arr")
+            return tok_arr;
         if (IdentifierStr == "if")
             return tok_if;
         if (IdentifierStr == "then")
@@ -50,14 +52,14 @@ int gettok()
             return tok_for;
         if (IdentifierStr == "while")
             return tok_while;
+        if (IdentifierStr == "rept")
+            return tok_repeat;
+        if (IdentifierStr == "loop")
+            return tok_loop;
         if (IdentifierStr == "binary")
             return tok_binary;
         if (IdentifierStr == "unary")
             return tok_unary;
-        if (IdentifierStr == "arr")
-            return tok_arr;
-        if (IdentifierStr == "rept")
-            return tok_repeat;
         if (IdentifierStr == "break")
             return tok_break;
         if (IdentifierStr == "return")

@@ -168,6 +168,15 @@ public:
     Value execute(int lvl, int stackIdx) override;
 };
 
+/// LoopExprAST - Expression class for loop.
+class LoopExprAST : public ExprAST {
+    std::shared_ptr<ExprAST> Body;
+
+public:
+    LoopExprAST(std::shared_ptr<ExprAST> Body) : Body(std::move(Body)) {}
+    Value execute(int lvl, int stackIdx) override;
+};
+
 /// BlockExprAST - Sequence of expressions.
 class BlockExprAST : public ExprAST {
     std::vector<std::shared_ptr<ExprAST>> Expressions;
@@ -264,6 +273,12 @@ std::shared_ptr<ExprAST> ParseArrDeclExpr();
 std::shared_ptr<ExprAST> ParseIfExpr();
 
 std::shared_ptr<ExprAST> ParseForExpr();
+
+std::shared_ptr<ExprAST> ParseWhileExpr();
+
+std::shared_ptr<ExprAST> ParseRepeatExpr();
+
+std::shared_ptr<ExprAST> ParseLoopExpr();
 
 std::shared_ptr<ExprAST> ParseBreakExpr();
 

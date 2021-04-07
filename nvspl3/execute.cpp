@@ -352,9 +352,7 @@ Value ForExprAST::execute(int lvl, int stackIdx)
         if (!(bool)EndCond.getVal()) break;
 
         BodyExpr = Body->execute(lvl + 1, StartIdx);
-        if (BodyExpr.isErr())
-            return Value(type::_ERR);
-        else if (BodyExpr.getType() == type::_BREAK) break;
+        if (BodyExpr.isErr() || BodyExpr.getType() == type::_BREAK) break;
 
         StackMemory.setValue(AddrTable[StartValLvl][VarName],
             Value(StackMemory.getValue(AddrTable[StartValLvl][VarName]).getVal() + StepVal.getVal()));
@@ -362,6 +360,9 @@ Value ForExprAST::execute(int lvl, int stackIdx)
     AddrTable.pop_back();
     ArrTable.pop_back();
     StackMemory.quickDelete(StartIdx);
+
+    if (BodyExpr.isErr())
+        return Value(type::_ERR);
 
     if (BodyExpr.getType() == type::_BREAK) return Value(type::_DOUBLE, BodyExpr.getVal());
     else return BodyExpr;
@@ -383,13 +384,14 @@ Value WhileExprAST::execute(int lvl, int stackIdx)
         if (!(bool)EndCond.getVal()) break;
 
         BodyExpr = Body->execute(lvl + 1, StartIdx);
-        if (BodyExpr.isErr())
-            return Value(type::_ERR);
-        else if (BodyExpr.getType() == type::_BREAK) break;
+        if (BodyExpr.isErr() || BodyExpr.getType() == type::_BREAK) break;
     }
     AddrTable.pop_back();
     ArrTable.pop_back();
     StackMemory.quickDelete(StartIdx);
+
+    if (BodyExpr.isErr())
+        return Value(type::_ERR);
 
     if (BodyExpr.getType() == type::_BREAK) return Value(type::_DOUBLE, BodyExpr.getVal());
     else return BodyExpr;
@@ -409,14 +411,39 @@ Value RepeatExprAST::execute(int lvl, int stackIdx)
     for (unsigned i = 0; i < (unsigned)(Iter.getVal()); i++)
     {
         BodyExpr = Body->execute(lvl + 1, StackMemory.getSize());
-        if (BodyExpr.isErr())
-            return Value(type::_ERR);
-        else if (BodyExpr.getType() == type::_BREAK) break;
+        if (BodyExpr.isErr() || BodyExpr.getType() == type::_BREAK) break;
     }
 
     AddrTable.pop_back();
     ArrTable.pop_back();
     StackMemory.quickDelete(StartIdx);
+
+    if (BodyExpr.isErr())
+        return Value(type::_ERR);
+
+    if (BodyExpr.getType() == type::_BREAK) return Value(type::_DOUBLE, BodyExpr.getVal());
+    else return BodyExpr;
+}
+
+Value LoopExprAST::execute(int lvl, int stackIdx)
+{
+    int StartIdx = StackMemory.getSize();
+    AddrTable.push_back(std::map<std::string, int>());
+    ArrTable.push_back(std::map<std::string, std::vector<int>>());
+
+    Value BodyExpr;
+    while (true)
+    {
+        BodyExpr = Body->execute(lvl + 1, StackMemory.getSize());
+        if (BodyExpr.isErr() || BodyExpr.getType() == type::_BREAK) break;
+    }
+
+    AddrTable.pop_back();
+    ArrTable.pop_back();
+    StackMemory.quickDelete(StartIdx);
+
+    if (BodyExpr.isErr())
+        return Value(type::_ERR);
 
     if (BodyExpr.getType() == type::_BREAK) return Value(type::_DOUBLE, BodyExpr.getVal());
     else return BodyExpr;
