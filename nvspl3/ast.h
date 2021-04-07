@@ -35,6 +35,7 @@ class Value
     type Type = type::_DOUBLE;
     double Val = 0.0;
 public:
+    Value() {}
     Value(double Val) : Val(Val) {}
     Value(type Type) : Type(Type) {}
     Value(type Type, double Val) : Type(Type), Val(Val) {}
@@ -179,7 +180,10 @@ public:
 
 /// BreakExprAST - Expression class for break.
 class BreakExprAST : public ExprAST {
+    std::shared_ptr<ExprAST> Expr;
+
 public:
+    BreakExprAST(std::shared_ptr<ExprAST> Expr) : Expr(std::move(Expr)) {}
     Value execute(int lvl, int stackIdx) override;
 };
 

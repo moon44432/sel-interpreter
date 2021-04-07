@@ -342,6 +342,7 @@ Value ForExprAST::execute(int lvl, int stackIdx)
     AddrTable.push_back(std::map<std::string, int>());
     ArrTable.push_back(std::map<std::string, std::vector<int>>());
 
+    Value BodyExpr;
     while (true)
     {
         Value EndCond = End->execute(lvl, stackIdx);
@@ -350,7 +351,7 @@ Value ForExprAST::execute(int lvl, int stackIdx)
 
         if (!(bool)EndCond.getVal()) break;
 
-        Value BodyExpr = Body->execute(lvl + 1, StartIdx);
+        BodyExpr = Body->execute(lvl + 1, StartIdx);
         if (BodyExpr.isErr())
             return Value(type::_ERR);
         else if (BodyExpr.getType() == type::_BREAK) break;
@@ -362,7 +363,8 @@ Value ForExprAST::execute(int lvl, int stackIdx)
     ArrTable.pop_back();
     StackMemory.quickDelete(StartIdx);
 
-    return Value(0.0);
+    if (BodyExpr.getType() == type::_BREAK) return Value(type::_DOUBLE, BodyExpr.getVal());
+    else return BodyExpr;
 }
 
 Value WhileExprAST::execute(int lvl, int stackIdx)
@@ -371,6 +373,7 @@ Value WhileExprAST::execute(int lvl, int stackIdx)
     AddrTable.push_back(std::map<std::string, int>());
     ArrTable.push_back(std::map<std::string, std::vector<int>>());
 
+    Value BodyExpr;
     while (true)
     {
         Value EndCond = Cond->execute(lvl, stackIdx);
@@ -379,7 +382,7 @@ Value WhileExprAST::execute(int lvl, int stackIdx)
 
         if (!(bool)EndCond.getVal()) break;
 
-        Value BodyExpr = Body->execute(lvl + 1, StartIdx);
+        BodyExpr = Body->execute(lvl + 1, StartIdx);
         if (BodyExpr.isErr())
             return Value(type::_ERR);
         else if (BodyExpr.getType() == type::_BREAK) break;
@@ -388,7 +391,8 @@ Value WhileExprAST::execute(int lvl, int stackIdx)
     ArrTable.pop_back();
     StackMemory.quickDelete(StartIdx);
 
-    return Value(0.0);
+    if (BodyExpr.getType() == type::_BREAK) return Value(type::_DOUBLE, BodyExpr.getVal());
+    else return BodyExpr;
 }
 
 Value RepeatExprAST::execute(int lvl, int stackIdx)
@@ -400,10 +404,11 @@ Value RepeatExprAST::execute(int lvl, int stackIdx)
     int StartIdx = StackMemory.getSize();
     AddrTable.push_back(std::map<std::string, int>());
     ArrTable.push_back(std::map<std::string, std::vector<int>>());
-   
+
+    Value BodyExpr;
     for (unsigned i = 0; i < (unsigned)(Iter.getVal()); i++)
     {
-        Value BodyExpr = Body->execute(lvl + 1, StackMemory.getSize());
+        BodyExpr = Body->execute(lvl + 1, StackMemory.getSize());
         if (BodyExpr.isErr())
             return Value(type::_ERR);
         else if (BodyExpr.getType() == type::_BREAK) break;
@@ -413,12 +418,17 @@ Value RepeatExprAST::execute(int lvl, int stackIdx)
     ArrTable.pop_back();
     StackMemory.quickDelete(StartIdx);
 
-    return Value(0.0);
+    if (BodyExpr.getType() == type::_BREAK) return Value(type::_DOUBLE, BodyExpr.getVal());
+    else return BodyExpr;
 }
 
 Value BreakExprAST::execute(int lvl, int stackIdx)
 {
-    return Value(type::_BREAK);
+    Value RetVal = Expr->execute(lvl, stackIdx);
+    if (RetVal.isErr())
+        return LogErrorV("failed to return a value");
+
+    return Value(type::_BREAK, RetVal.getVal());
 }
 
 Value ReturnExprAST::execute(int lvl, int stackIdx)

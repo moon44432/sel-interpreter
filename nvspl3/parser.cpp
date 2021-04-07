@@ -302,11 +302,16 @@ std::shared_ptr<ExprAST> ParseRepeatExpr()
 }
 
 /// breakexpr
-///   ::= 'break'
+///   ::= 'break' expr
 std::shared_ptr<ExprAST> ParseBreakExpr()
 {
     getNextToken(); // eat the break.
-    return std::make_shared<BreakExprAST>();
+
+    auto Expr = ParseExpression();
+    if (!Expr)
+        return nullptr;
+
+    return std::make_shared<BreakExprAST>(std::move(Expr));
 }
 
 /// returnexpr
