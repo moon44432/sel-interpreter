@@ -514,15 +514,21 @@ std::shared_ptr<PrototypeAST> ParsePrototype()
         return LogErrorP("Expected '(' in prototype");
 
     std::vector<std::string> ArgNames;
-    while (true)
-    {
-        if (getNextToken() == tok_identifier)
-            ArgNames.push_back(IdentifierStr);
 
-        getNextToken();
-        if (CurTok == ')') break;
-        if (CurTok != ',')
-            return LogErrorP("Expected ',' or ')'");
+    if (getNextToken() != ')')
+    {
+        while (true)
+        {
+            if (CurTok == tok_identifier)
+                ArgNames.push_back(IdentifierStr);
+
+            getNextToken();
+            if (CurTok == ')') break;
+            if (CurTok != ',')
+                return LogErrorP("Expected ',' or ')'");
+
+            getNextToken();
+        }
     }
     // success.
     getNextToken(); // eat ')'
