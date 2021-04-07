@@ -10,16 +10,15 @@ std::string IdentifierStr;
 std::string MainCode;
 double NumVal;
 int LastChar = ' ';
+int mainIdx = 0;
 
-static int idx = 0;
-
-int gettok()
+int gettok(std::string& Code, int *Idx)
 {
     // Skip any whitespace.
     while (isspace(LastChar))
     {
         if (IsInteractive) LastChar = getchar();
-        else LastChar = MainCode[idx++];
+        else LastChar = Code[(*Idx)++];
     }
 
     if (isalpha(LastChar) || LastChar == '_') // identifier: [a-zA-Z_][a-zA-Z0-9_]*
@@ -29,7 +28,7 @@ int gettok()
         while (true)
         {
             if (IsInteractive) LastChar = getchar();
-            else LastChar = MainCode[idx++];
+            else LastChar = Code[(*Idx)++];
 
             if (isalnum(LastChar) || LastChar == '_') IdentifierStr += LastChar;
             else break;
@@ -40,6 +39,8 @@ int gettok()
             return tok_def;
         if (IdentifierStr == "extern")
             return tok_extern;
+        if (IdentifierStr == "import")
+            return tok_import;
         if (IdentifierStr == "arr")
             return tok_arr;
         if (IdentifierStr == "if")
@@ -80,7 +81,7 @@ int gettok()
             NumStr += LastChar;
 
             if (IsInteractive) LastChar = getchar();
-            else LastChar = MainCode[idx++];
+            else LastChar = Code[(*Idx)++];
         } while (isdigit(LastChar) || LastChar == '.');
 
         NumVal = strtod(NumStr.c_str(), nullptr);
@@ -92,23 +93,23 @@ int gettok()
         // Comment until end of line.
         do
             if (IsInteractive) LastChar = getchar();
-            else LastChar = MainCode[idx++];
+            else LastChar = Code[(*Idx)++];
         while (LastChar != EOF && LastChar != '\n' && LastChar != '\r');
 
         if (LastChar != EOF)
-            return gettok();
+            return gettok(Code, Idx);
     }
 
     if (LastChar == '{')
     {
         if (IsInteractive) LastChar = getchar();
-        else LastChar = MainCode[idx++];
+        else LastChar = Code[(*Idx)++];
         return tok_openblock;
     }
     if (LastChar == '}')
     {
         if (IsInteractive) LastChar = getchar();
-        else LastChar = MainCode[idx++];
+        else LastChar = Code[(*Idx)++];
         return tok_closeblock;
     }
 
@@ -119,6 +120,28 @@ int gettok()
     // Otherwise, just return the character as its ascii value.
     int ThisChar = LastChar;
     if (IsInteractive) LastChar = getchar();
-    else LastChar = MainCode[idx++];
+    else LastChar = Code[(*Idx)++];
     return ThisChar;
+}
+
+std::string getPath(std::string& Code, int* Idx)
+{
+    std::string PathStr;
+    // Skip any whitespace.
+    while (isspace(LastChar))
+    {
+        if (IsInteractive) LastChar = getchar();
+        else LastChar = Code[(*Idx)++];
+    }
+
+    PathStr = LastChar;
+    while (true)
+    {
+        if (IsInteractive) LastChar = getchar();
+        else LastChar = Code[(*Idx)++];
+
+        if (LastChar != '\n' && LastChar != ';') PathStr += LastChar;
+        else break;
+    }
+    return PathStr;
 }

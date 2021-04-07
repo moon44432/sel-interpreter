@@ -30,9 +30,9 @@ void binopPrecInit()
     BinopPrecedence["="] = 18 - 15; // lowest
 }
 
-int getNextToken()
+int getNextToken(std::string& Code, int* Idx)
 {
-    return CurTok = gettok();
+    return CurTok = gettok(Code, Idx);
 }
 
 /// GetTokPrecedence - Get the precedence of the pending binary operator token.
@@ -59,24 +59,24 @@ std::shared_ptr<PrototypeAST> LogErrorP(const char* Str)
 }
 
 /// numberexpr ::= number
-std::shared_ptr<ExprAST> ParseNumberExpr()
+std::shared_ptr<ExprAST> ParseNumberExpr(std::string& Code, int* Idx)
 {
     auto Result = std::make_shared<NumberExprAST>(NumVal);
-    getNextToken(); // consume the number
+    getNextToken(Code, Idx); // consume the number
     return std::move(Result);
 }
 
 /// parenexpr ::= '(' expression ')'
-std::shared_ptr<ExprAST> ParseParenExpr()
+std::shared_ptr<ExprAST> ParseParenExpr(std::string& Code, int* Idx)
 {
-    getNextToken(); // eat (.
-    auto V = ParseExpression();
+    getNextToken(Code, Idx); // eat (.
+    auto V = ParseExpression(Code, Idx);
     if (!V)
         return nullptr;
 
     if (CurTok != ')')
         return LogError("expected ')'");
-    getNextToken(); // eat ).
+    getNextToken(Code, Idx); // eat ).
     return V;
 }
 
@@ -84,32 +84,32 @@ std::shared_ptr<ExprAST> ParseParenExpr()
 ///   ::= identifier
 ///   ::= identifier ('[' expression ']')+
 ///   ::= identifier '(' expression* ')'
-std::shared_ptr<ExprAST> ParseIdentifierExpr()
+std::shared_ptr<ExprAST> ParseIdentifierExpr(std::string& Code, int* Idx)
 {
     std::string IdName = IdentifierStr;
 
-    getNextToken(); // eat identifier.
+    getNextToken(Code, Idx); // eat identifier.
 
     if (CurTok != '(') // simple variable or array element ref.
     {
         if (CurTok != '[') return std::make_shared<VariableExprAST>(IdName);
-        getNextToken();
+        getNextToken(Code, Idx);
 
         std::vector<std::shared_ptr<ExprAST>> Indices;
         if (CurTok != ']')
         {
             while (true)
             {
-                if (auto Idx = ParseExpression())
-                    Indices.push_back(std::move(Idx));
+                if (auto ArrIdx = ParseExpression(Code, Idx))
+                    Indices.push_back(std::move(ArrIdx));
                 else return nullptr;
 
                 if (CurTok == ']')
                 {
-                    getNextToken();
+                    getNextToken(Code, Idx);
 
                     if (CurTok != '[') break;
-                    else getNextToken();
+                    else getNextToken(Code, Idx);
                 }
             }
         }
@@ -119,13 +119,13 @@ std::shared_ptr<ExprAST> ParseIdentifierExpr()
     }
 
     // Call.
-    getNextToken(); // eat (
+    getNextToken(Code, Idx); // eat (
     std::vector<std::shared_ptr<ExprAST>> Args;
     if (CurTok != ')')
     {
         while (true)
         {
-            if (auto Arg = ParseExpression())
+            if (auto Arg = ParseExpression(Code, Idx))
                 Args.push_back(std::move(Arg));
             else return nullptr;
 
@@ -134,27 +134,27 @@ std::shared_ptr<ExprAST> ParseIdentifierExpr()
 
             if (CurTok != ',')
                 return LogError("Expected ')' or ',' in argument list");
-            getNextToken();
+            getNextToken(Code, Idx);
         }
     }
 
     // Eat the ')'.
-    getNextToken();
+    getNextToken(Code, Idx);
 
     return std::make_shared<CallExprAST>(IdName, std::move(Args));
 }
 
 /// arrdeclexpr ::= 'arr' identifier ('[' number ']')+
-std::shared_ptr<ExprAST> ParseArrDeclExpr()
+std::shared_ptr<ExprAST> ParseArrDeclExpr(std::string& Code, int* Idx)
 {
-    getNextToken(); // eat the arr.
+    getNextToken(Code, Idx); // eat the arr.
 
     std::string IdName = IdentifierStr;
-    getNextToken();
+    getNextToken(Code, Idx);
 
     if (CurTok != '[') return LogError("expected '[' after array name");
 
-    getNextToken();
+    getNextToken(Code, Idx);
 
     std::vector<int> Indices;
 
@@ -168,47 +168,47 @@ std::shared_ptr<ExprAST> ParseArrDeclExpr()
                 else return LogError("length of each dimension must be 1 or higher");
             }
             else return LogError("length of each dimension must be an integer");
-            getNextToken();
+            getNextToken(Code, Idx);
 
             if (CurTok == ']')
             {
                 if (LastChar != '[')
                     break;
 
-                getNextToken();
-                getNextToken();
+                getNextToken(Code, Idx);
+                getNextToken(Code, Idx);
             }
         }
     }
     else return LogError("array dimension missing");
 
-    getNextToken();
+    getNextToken(Code, Idx);
     return std::make_shared<ArrDeclExprAST>(IdName, Indices);
 }
 
 /// ifexpr ::= 'if' expression 'then' blockexpr 'else' blockexpr
-std::shared_ptr<ExprAST> ParseIfExpr()
+std::shared_ptr<ExprAST> ParseIfExpr(std::string& Code, int* Idx)
 {
-    getNextToken(); // eat the if.
+    getNextToken(Code, Idx); // eat the if.
 
     // condition.
-    auto Cond = ParseExpression();
+    auto Cond = ParseExpression(Code, Idx);
     if (!Cond)
         return nullptr;
 
     if (CurTok != tok_then)
         return LogError("expected then");
-    getNextToken(); // eat the then
+    getNextToken(Code, Idx); // eat the then
 
-    auto Then = ParseBlockExpression();
+    auto Then = ParseBlockExpression(Code, Idx);
     if (!Then)
         return nullptr;
 
     if (CurTok == tok_else)
     {
-        getNextToken();
+        getNextToken(Code, Idx);
 
-        auto Else = ParseBlockExpression();
+        auto Else = ParseBlockExpression(Code, Idx);
         if (!Else)
             return nullptr;
 
@@ -219,41 +219,41 @@ std::shared_ptr<ExprAST> ParseIfExpr()
 }
 
 /// forexpr ::= 'for' identifier '=' expr ',' expr (',' expr)? blockexpr
-std::shared_ptr<ExprAST> ParseForExpr()
+std::shared_ptr<ExprAST> ParseForExpr(std::string& Code, int* Idx)
 {
-    getNextToken(); // eat the for.
+    getNextToken(Code, Idx); // eat the for.
 
     if (CurTok != tok_identifier)
         return LogError("expected identifier");
 
     std::string IdName = IdentifierStr;
-    getNextToken(); // eat identifier.
+    getNextToken(Code, Idx); // eat identifier.
 
     if (CurTok != '=')
         return LogError("expected '=' after for");
-    getNextToken(); // eat '='.
+    getNextToken(Code, Idx); // eat '='.
 
-    auto Start = ParseExpression();
+    auto Start = ParseExpression(Code, Idx);
     if (!Start)
         return nullptr;
     if (CurTok != ',')
         return LogError("expected ',' after for start value");
-    getNextToken();
+    getNextToken(Code, Idx);
 
-    auto End = ParseExpression();
+    auto End = ParseExpression(Code, Idx);
     if (!End)
         return nullptr;
 
     // The step value is optional.
     std::shared_ptr<ExprAST> Step;
     if (CurTok == ',') {
-        getNextToken();
-        Step = ParseExpression();
+        getNextToken(Code, Idx);
+        Step = ParseExpression(Code, Idx);
         if (!Step)
             return nullptr;
     }
 
-    auto Body = ParseBlockExpression();
+    auto Body = ParseBlockExpression(Code, Idx);
     if (!Body)
         return nullptr;
 
@@ -262,15 +262,15 @@ std::shared_ptr<ExprAST> ParseForExpr()
 }
 
 /// whileexpr ::= 'while' expr blockexpr
-std::shared_ptr<ExprAST> ParseWhileExpr()
+std::shared_ptr<ExprAST> ParseWhileExpr(std::string& Code, int* Idx)
 {
-    getNextToken(); // eat the while.
+    getNextToken(Code, Idx); // eat the while.
 
-    auto Cond = ParseExpression();
+    auto Cond = ParseExpression(Code, Idx);
     if (!Cond)
         return nullptr;
 
-    auto Body = ParseBlockExpression();
+    auto Body = ParseBlockExpression(Code, Idx);
     if (!Body)
         return nullptr;
 
@@ -278,15 +278,15 @@ std::shared_ptr<ExprAST> ParseWhileExpr()
 }
 
 /// reptexpr ::= 'rept' expr blockexpr
-std::shared_ptr<ExprAST> ParseRepeatExpr()
+std::shared_ptr<ExprAST> ParseRepeatExpr(std::string& Code, int* Idx)
 {
-    getNextToken(); // eat the rept.
+    getNextToken(Code, Idx); // eat the rept.
 
-    auto IterNum = ParseExpression();
+    auto IterNum = ParseExpression(Code, Idx);
     if (!IterNum)
         return nullptr;
 
-    auto Body = ParseBlockExpression();
+    auto Body = ParseBlockExpression(Code, Idx);
     if (!Body)
         return nullptr;
 
@@ -294,11 +294,11 @@ std::shared_ptr<ExprAST> ParseRepeatExpr()
 }
 
 /// loopexpr ::= 'loop' blockexpr
-std::shared_ptr<ExprAST> ParseLoopExpr()
+std::shared_ptr<ExprAST> ParseLoopExpr(std::string& Code, int* Idx)
 {
-    getNextToken(); // eat the loop.
+    getNextToken(Code, Idx); // eat the loop.
 
-    auto Body = ParseBlockExpression();
+    auto Body = ParseBlockExpression(Code, Idx);
     if (!Body)
         return nullptr;
 
@@ -307,11 +307,11 @@ std::shared_ptr<ExprAST> ParseLoopExpr()
 
 /// breakexpr
 ///   ::= 'break' expr
-std::shared_ptr<ExprAST> ParseBreakExpr()
+std::shared_ptr<ExprAST> ParseBreakExpr(std::string& Code, int* Idx)
 {
-    getNextToken(); // eat the break.
+    getNextToken(Code, Idx); // eat the break.
 
-    auto Expr = ParseExpression();
+    auto Expr = ParseExpression(Code, Idx);
     if (!Expr)
         return nullptr;
 
@@ -320,11 +320,11 @@ std::shared_ptr<ExprAST> ParseBreakExpr()
 
 /// returnexpr
 ///   ::= 'return' expr
-std::shared_ptr<ExprAST> ParseReturnExpr()
+std::shared_ptr<ExprAST> ParseReturnExpr(std::string& Code, int* Idx)
 {
-    getNextToken(); // eat the return.
+    getNextToken(Code, Idx); // eat the return.
 
-    auto Expr = ParseExpression();
+    auto Expr = ParseExpression(Code, Idx);
     if (!Expr)
         return nullptr;
 
@@ -340,56 +340,56 @@ std::shared_ptr<ExprAST> ParseReturnExpr()
 ///   ::= whileexpr
 ///   ::= reptexpr
 ///   ::= loopexpr
-std::shared_ptr<ExprAST> ParsePrimary()
+std::shared_ptr<ExprAST> ParsePrimary(std::string& Code, int* Idx)
 {
     switch (CurTok) {
     default:
         return LogError("unknown token when expecting an expression");
     case tok_identifier:
-        return ParseIdentifierExpr();
+        return ParseIdentifierExpr(Code, Idx);
     case tok_number:
-        return ParseNumberExpr();
+        return ParseNumberExpr(Code, Idx);
     case tok_for:
-        return ParseForExpr();
+        return ParseForExpr(Code, Idx);
     case tok_while:
-        return ParseWhileExpr();
+        return ParseWhileExpr(Code, Idx);
     case tok_if:
-        return ParseIfExpr();
+        return ParseIfExpr(Code, Idx);
     case tok_repeat:
-        return ParseRepeatExpr();
+        return ParseRepeatExpr(Code, Idx);
     case tok_loop:
-        return ParseLoopExpr();
+        return ParseLoopExpr(Code, Idx);
     case '(': // must be the last one (for, var, if, etc also use '(')
-        return ParseParenExpr();
+        return ParseParenExpr(Code, Idx);
     }
 }
 
 /// unary
 ///   ::= primary
 ///   ::= unaryop unary
-std::shared_ptr<ExprAST> ParseUnary()
+std::shared_ptr<ExprAST> ParseUnary(std::string& Code, int* Idx)
 {
     // If the current token is not an operator, it must be a primary expr.
     if (!isascii(CurTok) || CurTok == '(' || CurTok == ',')
-        return ParsePrimary();
+        return ParsePrimary(Code, Idx);
 
     // If this is a unary operator, read it.
     int Opc;
     if (OpChr.find(CurTok) != std::string::npos)
     {
         Opc = CurTok;
-        getNextToken();
+        getNextToken(Code, Idx);
     }
     else return LogError(((std::string)"unknown token '" + (char)CurTok + (std::string)"'").c_str());
 
-    if (auto Operand = ParseUnary())
+    if (auto Operand = ParseUnary(Code, Idx))
         return std::make_shared<UnaryExprAST>(Opc, std::move(Operand));
     return nullptr;
 }
 
 /// binoprhs
 ///   ::= (binop unary)*
-std::shared_ptr<ExprAST> ParseBinOpRHS(int ExprPrec, std::shared_ptr<ExprAST> LHS)
+std::shared_ptr<ExprAST> ParseBinOpRHS(std::string& Code, int* Idx, int ExprPrec, std::shared_ptr<ExprAST> LHS)
 {
     // If this is a binop, find its precedence.
     while (true)
@@ -411,11 +411,11 @@ std::shared_ptr<ExprAST> ParseBinOpRHS(int ExprPrec, std::shared_ptr<ExprAST> LH
         if (TokPrec < ExprPrec)
             return LHS;
 
-        getNextToken();
-        if (DoubleCh) getNextToken();
+        getNextToken(Code, Idx);
+        if (DoubleCh) getNextToken(Code, Idx);
 
         // Parse the unary expression after the binary operator.
-        auto RHS = ParseUnary();
+        auto RHS = ParseUnary(Code, Idx);
         if (!RHS)
             return nullptr;
 
@@ -433,7 +433,7 @@ std::shared_ptr<ExprAST> ParseBinOpRHS(int ExprPrec, std::shared_ptr<ExprAST> LH
         int NextPrec = GetTokPrecedence(NextOp);
         if (TokPrec < NextPrec)
         {
-            RHS = ParseBinOpRHS(TokPrec + 1, std::move(RHS));
+            RHS = ParseBinOpRHS(Code, Idx, TokPrec + 1, std::move(RHS));
             if (!RHS) return nullptr;
         }
 
@@ -448,44 +448,44 @@ std::shared_ptr<ExprAST> ParseBinOpRHS(int ExprPrec, std::shared_ptr<ExprAST> LH
 ///   ::= arrdeclexpr
 ///   ::= breakexpr
 ///   ::= returnexpr
-std::shared_ptr<ExprAST> ParseExpression()
+std::shared_ptr<ExprAST> ParseExpression(std::string& Code, int* Idx)
 {
     switch (CurTok)
     {
     case tok_arr:
-        return ParseArrDeclExpr();
+        return ParseArrDeclExpr(Code, Idx);
     case tok_break:
-        return ParseBreakExpr();
+        return ParseBreakExpr(Code, Idx);
     case tok_return:
-        return ParseReturnExpr();
+        return ParseReturnExpr(Code, Idx);
     default:
-        auto LHS = ParseUnary();
+        auto LHS = ParseUnary(Code, Idx);
         if (!LHS)
             return nullptr;
-        return ParseBinOpRHS(0, std::move(LHS));
+        return ParseBinOpRHS(Code, Idx, 0, std::move(LHS));
     }
 }
 
 /// blockexpr
 ///   ::= expression
 ///   ::= '{' expression+ '}'
-std::shared_ptr<ExprAST> ParseBlockExpression()
+std::shared_ptr<ExprAST> ParseBlockExpression(std::string& Code, int* Idx)
 {
     if (CurTok != tok_openblock)
-        return ParseExpression();
-    getNextToken();
+        return ParseExpression(Code, Idx);
+    getNextToken(Code, Idx);
 
     std::vector<std::shared_ptr<ExprAST>> ExprSeq;
 
     while (true)
     {
-        auto Expr = ParseBlockExpression();
+        auto Expr = ParseBlockExpression(Code, Idx);
         ExprSeq.push_back(std::move(Expr));
         if (CurTok == ';')
-            getNextToken();
+            getNextToken(Code, Idx);
         if (CurTok == tok_closeblock)
         {
-            getNextToken();
+            getNextToken(Code, Idx);
             break;
         }
     }
@@ -497,7 +497,7 @@ std::shared_ptr<ExprAST> ParseBlockExpression()
 ///   ::= id '(' id* ')'
 ///   ::= binary LETTER(LETTER)? number? (id, id)
 ///   ::= unary LETTER (id)
-std::shared_ptr<PrototypeAST> ParsePrototype()
+std::shared_ptr<PrototypeAST> ParsePrototype(std::string& Code, int* Idx)
 {
     std::string FnName;
 
@@ -510,29 +510,29 @@ std::shared_ptr<PrototypeAST> ParsePrototype()
     case tok_identifier:
         FnName = IdentifierStr;
         Kind = 0;
-        getNextToken();
+        getNextToken(Code, Idx);
         break;
     case tok_unary:
-        getNextToken();
+        getNextToken(Code, Idx);
         if (!isascii(CurTok))
             return LogErrorP("Expected unary operator");
         FnName = "unary";
         FnName += (char)CurTok;
         Kind = 1;
-        getNextToken();
+        getNextToken(Code, Idx);
         break;
     case tok_binary:
-        getNextToken();
+        getNextToken(Code, Idx);
         if (!isascii(CurTok))
             return LogErrorP("Expected binary operator");
 
         std::string OpName;
         OpName += (char)CurTok;
-        getNextToken();
+        getNextToken(Code, Idx);
         if (OpChr.find(CurTok) != std::string::npos)
         {
             OpName += (char)CurTok;
-            getNextToken();
+            getNextToken(Code, Idx);
         }
         Kind = 2;
 
@@ -541,7 +541,7 @@ std::shared_ptr<PrototypeAST> ParsePrototype()
             if (NumVal < 1 || NumVal > 18)
                 return LogErrorP("Invalid precedence: must be 1~18");
             BinaryPrecedence = (unsigned)NumVal;
-            getNextToken();
+            getNextToken(Code, Idx);
         }
 
         // install binary operator.
@@ -556,23 +556,23 @@ std::shared_ptr<PrototypeAST> ParsePrototype()
 
     std::vector<std::string> ArgNames;
 
-    if (getNextToken() != ')')
+    if (getNextToken(Code, Idx) != ')')
     {
         while (true)
         {
             if (CurTok == tok_identifier)
                 ArgNames.push_back(IdentifierStr);
 
-            getNextToken();
+            getNextToken(Code, Idx);
             if (CurTok == ')') break;
             if (CurTok != ',')
                 return LogErrorP("Expected ',' or ')'");
 
-            getNextToken();
+            getNextToken(Code, Idx);
         }
     }
     // success.
-    getNextToken(); // eat ')'
+    getNextToken(Code, Idx); // eat ')'
 
     // Verify right number of names for operator.
     if (Kind && ArgNames.size() != Kind)
@@ -583,26 +583,31 @@ std::shared_ptr<PrototypeAST> ParsePrototype()
 }
 
 /// definition ::= 'func' prototype expression
-std::shared_ptr<FunctionAST> ParseDefinition()
+std::shared_ptr<FunctionAST> ParseDefinition(std::string& Code, int* Idx)
 {
-    getNextToken(); // eat func.
-    auto Proto = ParsePrototype();
+    getNextToken(Code, Idx); // eat func.
+    auto Proto = ParsePrototype(Code, Idx);
     if (!Proto)
         return nullptr;
 
-    if (auto E = ParseBlockExpression())
+    if (auto E = ParseBlockExpression(Code, Idx))
         return std::make_shared<FunctionAST>(std::move(Proto), std::move(E));
     return nullptr;
 }
 
 /// toplevelexpr ::= expression
-std::shared_ptr<FunctionAST> ParseTopLevelExpr()
+std::shared_ptr<FunctionAST> ParseTopLevelExpr(std::string& Code, int* Idx)
 {
-    if (auto E = ParseBlockExpression()) {
+    if (auto E = ParseBlockExpression(Code, Idx)) {
         // Make an anonymous proto.
         auto Proto = std::make_shared<PrototypeAST>("__anon_expr",
             std::vector<std::string>());
         return std::make_shared<FunctionAST>(std::move(Proto), std::move(E));
     }
     return nullptr;
+}
+
+std::shared_ptr<ImportAST> ParseImport(std::string& Code, int* Idx)
+{
+    return std::make_shared<ImportAST>(getPath(Code, Idx) + ".sel");
 }

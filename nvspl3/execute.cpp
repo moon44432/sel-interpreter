@@ -525,20 +525,20 @@ Value FunctionAST::execute(std::vector<Value> Ops, int lvl, int stackIdx)
     return Value(type::_ERR);
 }
 
-void HandleDefinition()
+void HandleDefinition(std::string& Code, int* Idx)
 {
-    if (auto FnAST = ParseDefinition())
+    if (auto FnAST = ParseDefinition(Code, Idx))
     {
         if (IsInteractive) fprintf(stderr, "Read function definition\n");
         Functions[FnAST->getFuncName()] = FnAST;
     }
-    else getNextToken(); // Skip token for error recovery.
+    else getNextToken(Code, Idx); // Skip token for error recovery.
 }
 
-void HandleTopLevelExpression()
+void HandleTopLevelExpression(std::string& Code, int* Idx)
 {
     // Evaluate a top-level expression into an anonymous function.
-    if (auto FnAST = ParseTopLevelExpr())
+    if (auto FnAST = ParseTopLevelExpr(Code, Idx))
     {
         Value RetVal = FnAST->execute(std::vector<Value>(), 0, 0);
         if (!RetVal.isErr())
@@ -547,12 +547,59 @@ void HandleTopLevelExpression()
             if (IsInteractive) fprintf(stderr, "Evaluated to %f\n", FP);
         }
     }
-    else getNextToken(); // Skip token for error recovery.
+    else getNextToken(Code, Idx); // Skip token for error recovery.
+}
+
+void HandleImport(std::string& Code, int* Idx, int tmpCurTok, int tmpLastChar)
+{
+    if (auto ImAST = ParseImport(Code, Idx))
+    {
+        IsInteractive = false;
+        int moduleIdx = 0;
+        std::string ModuleCode;
+
+        FILE* fp = fopen(ImAST->getModuleName().c_str(), "r");
+        if (fp == NULL)
+        {
+            fprintf(stderr, "Error: cannot find module\n");
+            return;
+        }
+        while (!feof(fp)) ModuleCode += (char)fgetc(fp);
+        ModuleCode += EOF;
+        fclose(fp);
+
+        getNextToken(ModuleCode, &moduleIdx);
+
+        while (true)
+        {
+            if (CurTok == tok_eof) break;
+
+            switch (CurTok)
+            {
+            case tok_import:
+                HandleImport(ModuleCode, &moduleIdx, CurTok, LastChar);
+                getNextToken(ModuleCode, &moduleIdx);
+                break;
+            case tok_def:
+                HandleDefinition(ModuleCode, &moduleIdx);
+                break;
+            default:
+                getNextToken(ModuleCode, &moduleIdx);
+                break;
+            }
+        }
+        CurTok = tmpCurTok, LastChar = tmpLastChar;
+
+        fprintf(stderr, "Successfully installed module \"%s\".\n",
+            ImAST->getModuleName().c_str());
+    }
+    else getNextToken(Code, Idx); // Skip token for error recovery.
 }
 
 /// top ::= definition | external | expression | ';'
-void MainLoop()
+void MainLoop(std::string& Code, int* Idx)
 {
+    bool tmpFlag = false;
     while (true)
     {
         if (IsInteractive) fprintf(stderr, ">>> ");
@@ -561,20 +608,27 @@ void MainLoop()
         case tok_eof:
             return;
         case ';': // ignore top-level semicolons.
-            getNextToken();
+            getNextToken(Code, Idx);
+            break;
+        case tok_import:
+            if (IsInteractive) tmpFlag = true;
+            HandleImport(Code, Idx, CurTok, LastChar);
+            IsInteractive = tmpFlag;
+
+            getNextToken(Code, Idx);
             break;
         case tok_def:
-            HandleDefinition();
+            HandleDefinition(Code, Idx);
             break;
         case cmd_help:
             if (IsInteractive)
             {
-                getNextToken();
+                getNextToken(Code, Idx);
                 runHelp();
             }
             break;
         default:
-            HandleTopLevelExpression();
+            HandleTopLevelExpression(Code, Idx);
             break;
         }
     }
@@ -594,12 +648,12 @@ void execute(const char* filename)
     MainCode += EOF;
     fclose(fp);
 
-    DWORD t = GetTickCount();
+    DWORD t = GetTickCount64();
 
     binopPrecInit();
-    getNextToken();
-    MainLoop();
+    getNextToken(MainCode, &mainIdx);
+    MainLoop(MainCode, &mainIdx);
 
-    DWORD diff = (GetTickCount() - t);
+    DWORD diff = (GetTickCount64() - t);
     fprintf(stderr, "\nExecution finished (%.3lfs).\n", (double)diff / 1000);
 }

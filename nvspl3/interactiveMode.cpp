@@ -6,7 +6,7 @@
 
 void runInteractiveShell()
 {
-    std::string VerStr = "SEL v0.6.0 ";
+    std::string VerStr = "SEL v0.7.0 ";
     #ifdef _WIN32
     #ifdef _WIN64
     #ifdef _M_X64
@@ -28,10 +28,10 @@ void runInteractiveShell()
     fprintf(stderr, (VerStr + " Interactive Shell\n").c_str());
     fprintf(stderr, "Type \"help;\" for help. Visit https://github.com/moon44432/sel-interpreter for more information.\n\n");
     fprintf(stderr, ">>> ");
-    getNextToken();
+    getNextToken(MainCode, &mainIdx);
 
     // Run the main "interpreter loop" now.
-    MainLoop();
+    MainLoop(MainCode, &mainIdx);
 }
 
 void runHelp()

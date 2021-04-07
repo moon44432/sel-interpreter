@@ -18,10 +18,12 @@ public:
 
 Value LogErrorV(const char* Str);
 
-void HandleDefinition();
+void HandleDefinition(std::string& Code, int* Idx);
 
-void HandleTopLevelExpression();
+void HandleTopLevelExpression(std::string& Code, int* Idx);
 
-void MainLoop();
+void HandleImport(std::string& Code, int* Idx, int tmpCurTok, int tmpLastChar);
+
+void MainLoop(std::string& Code, int* Idx);
 
 void execute(const char* filename);

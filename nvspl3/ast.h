@@ -16,7 +16,6 @@
 #include <utility>
 #include <vector>
 
-extern int CurTok;
 extern std::map<std::string, int> BinopPrecedence;
 extern std::string OpChr;
 
@@ -252,9 +251,18 @@ public:
     const std::vector<std::string> getFuncArgs() const { return Proto->getArgs(); }
 };
 
+/// ImportAST - This class represents a module import.
+class ImportAST {
+    std::string ModuleName;
+
+public:
+    ImportAST(const std::string& Name) : ModuleName(Name) {}
+    const std::string getModuleName() const { return ModuleName; }
+};
+
 void binopPrecInit();
 
-int getNextToken();
+int getNextToken(std::string& Code, int* Idx);
 
 int GetTokPrecedence(std::string Op);
 
@@ -262,40 +270,42 @@ std::shared_ptr<ExprAST> LogError(const char* Str);
 
 std::shared_ptr<PrototypeAST> LogErrorP(const char* Str);
 
-std::shared_ptr<ExprAST> ParseNumberExpr();
+std::shared_ptr<ExprAST> ParseNumberExpr(std::string& Code, int* Idx);
 
-std::shared_ptr<ExprAST> ParseParenExpr();
+std::shared_ptr<ExprAST> ParseParenExpr(std::string& Code, int* Idx);
 
-std::shared_ptr<ExprAST> ParseIdentifierExpr();
+std::shared_ptr<ExprAST> ParseIdentifierExpr(std::string& Code, int* Idx);
 
-std::shared_ptr<ExprAST> ParseArrDeclExpr();
+std::shared_ptr<ExprAST> ParseArrDeclExpr(std::string& Code, int* Idx);
 
-std::shared_ptr<ExprAST> ParseIfExpr();
+std::shared_ptr<ExprAST> ParseIfExpr(std::string& Code, int* Idx);
 
-std::shared_ptr<ExprAST> ParseForExpr();
+std::shared_ptr<ExprAST> ParseForExpr(std::string& Code, int* Idx);
 
-std::shared_ptr<ExprAST> ParseWhileExpr();
+std::shared_ptr<ExprAST> ParseWhileExpr(std::string& Code, int* Idx);
 
-std::shared_ptr<ExprAST> ParseRepeatExpr();
+std::shared_ptr<ExprAST> ParseRepeatExpr(std::string& Code, int* Idx);
 
-std::shared_ptr<ExprAST> ParseLoopExpr();
+std::shared_ptr<ExprAST> ParseLoopExpr(std::string& Code, int* Idx);
 
-std::shared_ptr<ExprAST> ParseBreakExpr();
+std::shared_ptr<ExprAST> ParseBreakExpr(std::string& Code, int* Idx);
 
-std::shared_ptr<ExprAST> ParseReturnExpr();
+std::shared_ptr<ExprAST> ParseReturnExpr(std::string& Code, int* Idx);
 
-std::shared_ptr<ExprAST> ParsePrimary();
+std::shared_ptr<ExprAST> ParsePrimary(std::string& Code, int* Idx);
 
-std::shared_ptr<ExprAST> ParseUnary();
+std::shared_ptr<ExprAST> ParseUnary(std::string& Code, int* Idx);
 
-std::shared_ptr<ExprAST> ParseBinOpRHS(int ExprPrec, std::shared_ptr<ExprAST> LHS);
+std::shared_ptr<ExprAST> ParseBinOpRHS(std::string& Code, int* Idx, int ExprPrec, std::shared_ptr<ExprAST> LHS);
 
-std::shared_ptr<ExprAST> ParseExpression();
+std::shared_ptr<ExprAST> ParseExpression(std::string& Code, int* Idx);
 
-std::shared_ptr<ExprAST> ParseBlockExpression();
+std::shared_ptr<ExprAST> ParseBlockExpression(std::string& Code, int* Idx);
 
-std::shared_ptr<PrototypeAST> ParsePrototype();
+std::shared_ptr<PrototypeAST> ParsePrototype(std::string& Code, int* Idx);
 
-std::shared_ptr<FunctionAST> ParseDefinition();
+std::shared_ptr<FunctionAST> ParseDefinition(std::string& Code, int* Idx);
 
-std::shared_ptr<FunctionAST> ParseTopLevelExpr();
+std::shared_ptr<FunctionAST> ParseTopLevelExpr(std::string& Code, int* Idx);
+
+std::shared_ptr<ImportAST> ParseImport(std::string& Code, int* Idx);

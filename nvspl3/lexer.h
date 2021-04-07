@@ -13,29 +13,30 @@ enum Token
     // commands
     tok_def = -2,
     tok_extern = -3,
+    tok_import = -4,
 
     // primary
-    tok_identifier = -4,
-    tok_number = -5,
+    tok_identifier = -10,
+    tok_number = -11,
 
     // control
-    tok_if = -6,
-    tok_then = -7,
-    tok_else = -8,
-    tok_for = -9,
-    tok_while = -10,
-    tok_repeat = -11,
-    tok_loop = -12,
-    tok_break = -20,
-    tok_return = -21,
+    tok_if = -16,
+    tok_then = -17,
+    tok_else = -18,
+    tok_for = -19,
+    tok_while = -20,
+    tok_repeat = -21,
+    tok_loop = -22,
+    tok_break = -30,
+    tok_return = -31,
 
     // operators
-    tok_binary = -30,
-    tok_unary = -31,
+    tok_binary = -40,
+    tok_unary = -41,
 
     // var definition
-    tok_var = -35,
-    tok_arr = -36,
+    tok_var = -45,
+    tok_arr = -46,
 
     // block
     tok_openblock = -90,
@@ -46,9 +47,15 @@ enum Token
 };
 
 extern std::string IdentifierStr;
+extern std::string PathStr;
 extern std::string MainCode;
 extern double NumVal;
+extern int CurTok;
 extern int LastChar;
+extern int mainIdx;
+
 extern bool IsInteractive;
 
-int gettok();
+int gettok(std::string& Code, int* Idx);
+
+std::string getPath(std::string& Code, int* Idx);
