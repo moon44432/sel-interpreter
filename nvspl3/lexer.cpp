@@ -140,7 +140,7 @@ std::string getPath(std::string& Code, int* Idx)
         if (IsInteractive) LastChar = getchar();
         else LastChar = Code[(*Idx)++];
 
-        if (LastChar != '\n' && LastChar != ';') PathStr += LastChar;
+        if (LastChar != '\n' && LastChar != ';' && LastChar != EOF) PathStr += LastChar;
         else break;
     }
     return PathStr;

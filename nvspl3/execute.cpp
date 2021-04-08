@@ -590,7 +590,7 @@ void HandleImport(std::string& Code, int* Idx, int tmpCurTok, int tmpLastChar, b
         }
         CurTok = tmpCurTok, LastChar = tmpLastChar;
 
-        if (tmpFlag) fprintf(stderr, "Successfully installed module \"%s\".\n",
+        if (tmpFlag) fprintf(stderr, "Successfully installed module \"%s\".\n>>> ",
             ImAST->getModuleName().c_str());
     }
     else getNextToken(Code, Idx); // Skip token for error recovery.
@@ -614,7 +614,6 @@ void MainLoop(std::string& Code, int* Idx)
             if (IsInteractive) tmpFlag = true;
             HandleImport(Code, Idx, CurTok, LastChar, tmpFlag);
             IsInteractive = tmpFlag;
-
             getNextToken(Code, Idx);
             break;
         case tok_def:
