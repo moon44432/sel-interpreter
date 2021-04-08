@@ -20,6 +20,8 @@ Value CallStdFunc(const std::string& Name, const std::vector<Value>& Args)
 	else if (Name == "printch") return printch(Args);
 	else if (Name == "input") return input(Args);
 	else if (Name == "inputch") return inputch(Args);
+
+	return Value(type::_ERR);
 }
 
 Value print(const std::vector<Value>& Args)
