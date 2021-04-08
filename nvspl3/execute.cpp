@@ -29,6 +29,15 @@ Value NumberExprAST::execute(int lvl, int stackIdx)
     return Val;
 }
 
+Value DeRefExprAST::execute(int lvl, int stackIdx)
+{
+    Value Address = Addr->execute(lvl, stackIdx);
+    if (Address.isErr())
+        return Value(type::_ERR);
+
+    return StackMemory.getValue((unsigned)Address.getVal());
+}
+
 Value VariableExprAST::execute(int lvl, int stackIdx)
 {
     if (!Indices.empty()) // array element
@@ -89,6 +98,57 @@ Value ArrDeclExprAST::execute(int lvl, int stackIdx)
 
 Value UnaryExprAST::execute(int lvl, int stackIdx)
 {
+    if (Opcode == '&') // reference operator
+    {
+        VariableExprAST* Op = static_cast<VariableExprAST*>(Operand.get());
+        if (!Op) return LogErrorV("Operand of '&' must be a variable");
+
+        std::vector<std::shared_ptr<ExprAST>> Indices = Op->getIndices();
+        if (!Indices.empty()) // array element
+        {
+            for (int i = lvl; i >= 0; i--)
+            {
+                if (AddrTable[i].find(Op->getName()) != AddrTable[i].end())
+                {
+                    int j;
+                    for (j = lvl; j >= 0; j--)
+                    {
+                        if (ArrTable[j].find(Op->getName()) != ArrTable[j].end())
+                        {
+                            std::vector<Value> IdxV;
+                            for (unsigned k = 0, e = Indices.size(); k != e; ++k) {
+                                IdxV.push_back(Indices[k]->execute(lvl, stackIdx));
+                                if (IdxV.back().isErr()) return LogErrorV("error while calculating indices");
+                            }
+
+                            std::vector<int> LenDim = ArrTable[j][Op->getName()];
+                            if (IdxV.size() != LenDim.size()) return LogErrorV("dimension mismatch");
+
+                            int AddVal = 0;
+                            for (int l = 0; l < IdxV.size(); l++)
+                            {
+                                int MulVal = 1;
+                                for (int m = l + 1; m < IdxV.size(); m++) MulVal *= LenDim[m];
+                                AddVal += MulVal * (int)IdxV[l].getVal();
+                            }
+                            return Value(AddrTable[i][Op->getName()] + AddVal);
+                        }
+                    }
+                    if (j < 0) return LogErrorV(((Op->getName() + (std::string)(" is not an array"))).c_str());
+                }
+            }
+        }
+        else // normal variable
+        {
+            for (int i = lvl; i >= 0; i--)
+            {
+                if (AddrTable[i].find(Op->getName()) != AddrTable[i].end())
+                    return Value(AddrTable[i][Op->getName()]);
+            }
+            return LogErrorV(std::string("variable \"" + Op->getName() + "\" not found").c_str());
+        }
+    }
+
     Value OperandV = Operand->execute(lvl, stackIdx);
     if (OperandV.isErr())
         return Value(type::_ERR);
@@ -119,15 +179,27 @@ Value BinaryExprAST::execute(int lvl, int stackIdx) {
     // Special case '=' because we don't want to emit the LHS as an expression.
     if (Op == "=")
     {
-        // Assignment requires the LHS to be an identifier.
-        VariableExprAST* LHSE = static_cast<VariableExprAST*>(LHS.get());
-        if (!LHSE)
-            return LogErrorV("destination of '=' must be a variable");
         // execute the RHS.
         Value Val = RHS->execute(lvl, stackIdx);
 
         if (Val.isErr())
             return Value(type::_ERR);
+
+        // Assignment requires the LHS to be an identifier.
+        VariableExprAST* LHSE = static_cast<VariableExprAST*>(LHS.get());
+        if (!LHSE)
+        {
+            DeRefExprAST* DeRef = static_cast<DeRefExprAST*>(LHS.get());
+            if (!DeRef) return LogErrorV("destination of '=' must be a variable");
+
+            // update value at the memory address
+            Value Address = DeRef->getAddrExpr()->execute(lvl, stackIdx);
+            if (Address.isErr())
+                return Value(type::_ERR);
+
+            StackMemory.setValue((unsigned)Address.getVal(), Val);
+            return Val;
+        }
 
         // Look up the name.
         std::vector<std::shared_ptr<ExprAST>> Indices = LHSE->getIndices();

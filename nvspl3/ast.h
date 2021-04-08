@@ -74,6 +74,16 @@ public:
     Value execute(int lvl, int stackIdx) override;
 };
 
+/// DeRefExprAST - Expression class for dereferencing a memory address, like "@a" or "@(ptr + 10)".
+class DeRefExprAST : public ExprAST {
+    std::shared_ptr<ExprAST> Addr;
+
+public:
+    DeRefExprAST(std::shared_ptr<ExprAST> Addr) : Addr(std::move(Addr)) {}
+    const std::shared_ptr<ExprAST> getAddrExpr() const { return Addr; }
+    Value execute(int lvl, int stackIdx) override;
+};
+
 /// ArrDeclExprAST - Expression class for declaring an array, like "arr[2][2][2]".
 class ArrDeclExprAST : public ExprAST {
     std::string Name;
@@ -210,6 +220,7 @@ public:
 class PrototypeAST {
     std::string Name;
     std::vector<std::string> Args;
+    std::vector<bool> ArgsType; // 0 - variable, 1 - array
     bool IsOperator;
     unsigned Precedence; // Precedence if a binary op.
 
@@ -234,6 +245,7 @@ public:
     unsigned getBinaryPrecedence() const { return Precedence; }
     const int getArgsSize() const { return Args.size(); }
     const std::vector<std::string>& getArgs() const { return Args; }
+    const std::vector<bool>& getArgsType() const { return ArgsType; }
 };
 
 /// FunctionAST - This class represents a function definition itself.
@@ -275,6 +287,8 @@ std::shared_ptr<ExprAST> ParseNumberExpr(std::string& Code, int* Idx);
 std::shared_ptr<ExprAST> ParseParenExpr(std::string& Code, int* Idx);
 
 std::shared_ptr<ExprAST> ParseIdentifierExpr(std::string& Code, int* Idx);
+
+std::shared_ptr<ExprAST> ParseDeRefExpr(std::string& Code, int* Idx);
 
 std::shared_ptr<ExprAST> ParseArrDeclExpr(std::string& Code, int* Idx);
 

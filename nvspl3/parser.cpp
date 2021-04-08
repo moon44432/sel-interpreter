@@ -144,6 +144,19 @@ std::shared_ptr<ExprAST> ParseIdentifierExpr(std::string& Code, int* Idx)
     return std::make_shared<CallExprAST>(IdName, std::move(Args));
 }
 
+/// derefexpr
+///   ::= '@' expression
+std::shared_ptr<ExprAST> ParseDeRefExpr(std::string& Code, int* Idx)
+{
+    getNextToken(Code, Idx); // eat the '@'.
+
+    auto Addr = ParseExpression(Code, Idx);
+    if (!Addr)
+        return nullptr;
+
+    return std::make_shared<DeRefExprAST>(std::move(Addr));
+}
+
 /// arrdeclexpr ::= 'arr' identifier ('[' number ']')+
 std::shared_ptr<ExprAST> ParseArrDeclExpr(std::string& Code, int* Idx)
 {
@@ -333,6 +346,7 @@ std::shared_ptr<ExprAST> ParseReturnExpr(std::string& Code, int* Idx)
 
 /// primary
 ///   ::= identifierexpr
+///   ::= derefexpr
 ///   ::= numberexpr
 ///   ::= parenexpr
 ///   ::= ifexpr
@@ -359,6 +373,8 @@ std::shared_ptr<ExprAST> ParsePrimary(std::string& Code, int* Idx)
         return ParseRepeatExpr(Code, Idx);
     case tok_loop:
         return ParseLoopExpr(Code, Idx);
+    case '@':
+        return ParseDeRefExpr(Code, Idx);
     case '(': // must be the last one (for, var, if, etc also use '(')
         return ParseParenExpr(Code, Idx);
     }
@@ -370,7 +386,7 @@ std::shared_ptr<ExprAST> ParsePrimary(std::string& Code, int* Idx)
 std::shared_ptr<ExprAST> ParseUnary(std::string& Code, int* Idx)
 {
     // If the current token is not an operator, it must be a primary expr.
-    if (!isascii(CurTok) || CurTok == '(' || CurTok == ',')
+    if (!isascii(CurTok) || CurTok == '(' || CurTok == ',' || CurTok == '@')
         return ParsePrimary(Code, Idx);
 
     // If this is a unary operator, read it.
