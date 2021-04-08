@@ -72,7 +72,7 @@ Value VariableExprAST::execute(int lvl, int stackIdx)
                 return StackMemory.getValue(AddrTable[i][Name]);
         }
     }
-    return LogErrorV("identifier not found");
+    return LogErrorV(std::string("identifier \"" + Name + "\" not found").c_str());
 }
 
 Value ArrDeclExprAST::execute(int lvl, int stackIdx)
@@ -550,7 +550,7 @@ void HandleTopLevelExpression(std::string& Code, int* Idx)
     else getNextToken(Code, Idx); // Skip token for error recovery.
 }
 
-void HandleImport(std::string& Code, int* Idx, int tmpCurTok, int tmpLastChar)
+void HandleImport(std::string& Code, int* Idx, int tmpCurTok, int tmpLastChar, bool tmpFlag)
 {
     if (auto ImAST = ParseImport(Code, Idx))
     {
@@ -577,7 +577,7 @@ void HandleImport(std::string& Code, int* Idx, int tmpCurTok, int tmpLastChar)
             switch (CurTok)
             {
             case tok_import:
-                HandleImport(ModuleCode, &moduleIdx, CurTok, LastChar);
+                HandleImport(ModuleCode, &moduleIdx, CurTok, LastChar, tmpFlag);
                 getNextToken(ModuleCode, &moduleIdx);
                 break;
             case tok_def:
@@ -590,7 +590,7 @@ void HandleImport(std::string& Code, int* Idx, int tmpCurTok, int tmpLastChar)
         }
         CurTok = tmpCurTok, LastChar = tmpLastChar;
 
-        fprintf(stderr, "Successfully installed module \"%s\".\n",
+        if (tmpFlag) fprintf(stderr, "Successfully installed module \"%s\".\n",
             ImAST->getModuleName().c_str());
     }
     else getNextToken(Code, Idx); // Skip token for error recovery.
@@ -612,7 +612,7 @@ void MainLoop(std::string& Code, int* Idx)
             break;
         case tok_import:
             if (IsInteractive) tmpFlag = true;
-            HandleImport(Code, Idx, CurTok, LastChar);
+            HandleImport(Code, Idx, CurTok, LastChar, tmpFlag);
             IsInteractive = tmpFlag;
 
             getNextToken(Code, Idx);
