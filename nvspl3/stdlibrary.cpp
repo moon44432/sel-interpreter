@@ -10,6 +10,7 @@ std::vector<std::string> StdFuncList = {
 	"println",
 	"printch",
 	"input",
+	"inputch",
 };
 
 Value CallStdFunc(const std::string& Name, const std::vector<Value>& Args)
@@ -18,6 +19,7 @@ Value CallStdFunc(const std::string& Name, const std::vector<Value>& Args)
 	else if (Name == "println") return println(Args);
 	else if (Name == "printch") return printch(Args);
 	else if (Name == "input") return input(Args);
+	else if (Name == "inputch") return inputch(Args);
 }
 
 Value print(const std::vector<Value>& Args)
@@ -46,4 +48,13 @@ Value input(const std::vector<Value>& Args)
 	double Val;
 	fscanf(stdin, "%lf", &Val);
 	return Value(Val);
+}
+
+Value inputch(const std::vector<Value>& Args)
+{
+	if (Args.size() != 0) return LogErrorV("inputch() requires no arguments");
+
+	char Val;
+	fscanf(stdin, "%c", &Val);
+	return Value((double)Val);
 }
