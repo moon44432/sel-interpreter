@@ -150,11 +150,11 @@ std::shared_ptr<ExprAST> ParseDeRefExpr(std::string& Code, int* Idx)
 {
     getNextToken(Code, Idx); // eat the '@'.
 
-    auto Addr = ParseExpression(Code, Idx);
-    if (!Addr)
+    auto V = ParsePrimary(Code, Idx);
+    if (!V)
         return nullptr;
 
-    return std::make_shared<DeRefExprAST>(std::move(Addr));
+    return std::make_shared<DeRefExprAST>(std::move(V));
 }
 
 /// arrdeclexpr ::= 'arr' identifier ('[' number ']')+
@@ -361,6 +361,8 @@ std::shared_ptr<ExprAST> ParsePrimary(std::string& Code, int* Idx)
         return LogError("unknown token when expecting an expression");
     case tok_identifier:
         return ParseIdentifierExpr(Code, Idx);
+    case '@':
+        return ParseDeRefExpr(Code, Idx);
     case tok_number:
         return ParseNumberExpr(Code, Idx);
     case tok_for:
@@ -373,8 +375,6 @@ std::shared_ptr<ExprAST> ParsePrimary(std::string& Code, int* Idx)
         return ParseRepeatExpr(Code, Idx);
     case tok_loop:
         return ParseLoopExpr(Code, Idx);
-    case '@':
-        return ParseDeRefExpr(Code, Idx);
     case '(': // must be the last one (for, var, if, etc also use '(')
         return ParseParenExpr(Code, Idx);
     }

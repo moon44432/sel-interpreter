@@ -31,7 +31,7 @@ Value NumberExprAST::execute(int lvl, int stackIdx)
 
 Value DeRefExprAST::execute(int lvl, int stackIdx)
 {
-    Value Address = Addr->execute(lvl, stackIdx);
+    Value Address = AddrExpr->execute(lvl, stackIdx);
     if (Address.isErr())
         return Value(type::_ERR);
 
@@ -143,7 +143,9 @@ Value UnaryExprAST::execute(int lvl, int stackIdx)
             for (int i = lvl; i >= 0; i--)
             {
                 if (AddrTable[i].find(Op->getName()) != AddrTable[i].end())
+                {
                     return Value(AddrTable[i][Op->getName()]);
+                }
             }
             return LogErrorV(std::string("variable \"" + Op->getName() + "\" not found").c_str());
         }
@@ -186,18 +188,15 @@ Value BinaryExprAST::execute(int lvl, int stackIdx) {
             return Value(type::_ERR);
 
         // Assignment requires the LHS to be an identifier.
-        VariableExprAST* LHSE = static_cast<VariableExprAST*>(LHS.get());
+        VariableExprAST* LHSE = dynamic_cast<VariableExprAST*>(LHS.get());
         if (!LHSE)
         {
-            DeRefExprAST* DeRef = static_cast<DeRefExprAST*>(LHS.get());
-            if (!DeRef) return LogErrorV("destination of '=' must be a variable");
-
+            DeRefExprAST* LHSE = dynamic_cast<DeRefExprAST*>(LHS.get());
+            if (!LHSE)
+                return LogErrorV("destination of '=' must be a variable");
+            
             // update value at the memory address
-            Value Address = DeRef->getAddrExpr()->execute(lvl, stackIdx);
-            if (Address.isErr())
-                return Value(type::_ERR);
-
-            StackMemory.setValue((unsigned)Address.getVal(), Val);
+            StackMemory.setValue((unsigned)LHSE->getExpr()->execute(lvl, stackIdx).getVal(), Val);
             return Val;
         }
 

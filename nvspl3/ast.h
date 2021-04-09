@@ -76,11 +76,11 @@ public:
 
 /// DeRefExprAST - Expression class for dereferencing a memory address, like "@a" or "@(ptr + 10)".
 class DeRefExprAST : public ExprAST {
-    std::shared_ptr<ExprAST> Addr;
+    std::shared_ptr<ExprAST> AddrExpr;
 
 public:
-    DeRefExprAST(std::shared_ptr<ExprAST> Addr) : Addr(std::move(Addr)) {}
-    const std::shared_ptr<ExprAST> getAddrExpr() const { return Addr; }
+    DeRefExprAST(std::shared_ptr<ExprAST> Addr) : AddrExpr(std::move(Addr)) {}
+    const std::shared_ptr<ExprAST> getExpr() { return AddrExpr; }
     Value execute(int lvl, int stackIdx) override;
 };
 
