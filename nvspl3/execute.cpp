@@ -326,9 +326,7 @@ Value CallExprAST::execute(int lvl, int stackIdx)
     }
 
     if (std::find(StdFuncList.begin(), StdFuncList.end(), Callee) != StdFuncList.end())
-    {
         return Value(CallStdFunc(Callee, ArgsV));
-    }
 
     // Look up the name in the global module table.
     std::shared_ptr<FunctionAST> CalleeF = Functions[Callee];
@@ -561,24 +559,26 @@ Value BlockExprAST::execute(int lvl, int stackIdx)
 Value FunctionAST::execute(std::vector<Value> Ops, int lvl, int stackIdx)
 {
     int StartIdx = StackMemory.getSize();
-    if (lvl > 0)
+
+    int level = lvl;
+
+    if (Proto->getName() != "__anon_expr") // user defined function, not top-level expr
     {
         AddrTable.push_back(std::map<std::string, int>());
         ArrTable.push_back(std::map<std::string, std::vector<int>>());
+        level++;
     }
 
     auto& Arg = Proto->getArgs();
     for (int i = 0; i < Proto->getArgsSize(); i++)
     {
-        if (lvl > 0) AddrTable[lvl + 1][Arg[i]] = StackMemory.addValue(Ops[i]);
-        else AddrTable[lvl][Arg[i]] = StackMemory.addValue(Ops[i]);
+        AddrTable[level][Arg[i]] = StackMemory.addValue(Ops[i]);
     }
 
     Value RetVal(type::_ERR);
-    if (lvl > 0) RetVal = Body->execute(lvl + 1, StackMemory.getSize());
-    else RetVal = Body->execute(lvl, StackMemory.getSize());
+    RetVal = Body->execute(level, StackMemory.getSize());
 
-    if (lvl > 0)
+    if (Proto->getName() != "__anon_expr")
     {
         AddrTable.pop_back();
         ArrTable.pop_back();
@@ -591,8 +591,6 @@ Value FunctionAST::execute(std::vector<Value> Ops, int lvl, int stackIdx)
         else return RetVal;
     }
 
-    if (Proto->isBinaryOp())
-        BinopPrecedence.erase(Proto->getOperatorName());
     return Value(type::_ERR);
 }
 
