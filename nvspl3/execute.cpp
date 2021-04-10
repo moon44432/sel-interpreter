@@ -93,7 +93,7 @@ Value ArrDeclExprAST::execute(int lvl, int stackIdx)
     for (int i = 0; i < Indices.size(); i++) size *= Indices[i];
     for (int i = 0; i < size - 1; i++) StackMemory.addValue(Value(0.0));
 
-    return Value(0.0);
+    return Value(size);
 }
 
 Value UnaryExprAST::execute(int lvl, int stackIdx)
