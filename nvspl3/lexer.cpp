@@ -21,7 +21,7 @@ int gettok(std::string& Code, int *Idx)
         else LastChar = Code[(*Idx)++];
     }
 
-    if (isalpha(LastChar) || LastChar == '_') // identifier: [a-zA-Z_][a-zA-Z0-9_]*
+    if (isalpha(LastChar)) // identifier: [a-zA-Z][a-zA-Z0-9_]*
     { 
         IdentifierStr = LastChar;
         
@@ -91,10 +91,10 @@ int gettok(std::string& Code, int *Idx)
     if (LastChar == '#')
     {
         // Comment until end of line.
-        do
+        do {
             if (IsInteractive) LastChar = getchar();
             else LastChar = Code[(*Idx)++];
-        while (LastChar != EOF && LastChar != '\n' && LastChar != '\r');
+        } while (LastChar != EOF && LastChar != '\n' && LastChar != '\r');
 
         if (LastChar != EOF)
             return gettok(Code, Idx);
