@@ -53,11 +53,11 @@ Value VariableExprAST::execute(int lvl, int stackIdx)
                         std::vector<Value> IdxV;
                         for (unsigned k = 0, e = Indices.size(); k != e; ++k) {
                             IdxV.push_back(Indices[k]->execute(lvl, stackIdx));
-                            if (IdxV.back().isErr()) return LogErrorV("error while calculating indices");
+                            if (IdxV.back().isErr()) return LogErrorV("Error while calculating indices");
                         }
 
                         std::vector<int> LenDim = ArrTable[j][Name];
-                        if (IdxV.size() != LenDim.size()) return LogErrorV("dimension mismatch");
+                        if (IdxV.size() != LenDim.size()) return LogErrorV("Dimension mismatch");
 
                         int AddVal = 0;
                         for (int l = 0; l < IdxV.size(); l++)
@@ -69,7 +69,7 @@ Value VariableExprAST::execute(int lvl, int stackIdx)
                         return StackMemory.getValue(AddrTable[i][Name] + AddVal);
                     }
                 }
-                return LogErrorV(((Name + (std::string)(" is not an array"))).c_str());
+                return LogErrorV((((std::string)("\"") + Name + (std::string)("\" is not an array"))).c_str());
             }
         }
     }
@@ -81,7 +81,7 @@ Value VariableExprAST::execute(int lvl, int stackIdx)
                 return StackMemory.getValue(AddrTable[i][Name]);
         }
     }
-    return LogErrorV(std::string("identifier \"" + Name + "\" not found").c_str());
+    return LogErrorV(std::string("Identifier \"" + Name + "\" not found").c_str());
 }
 
 Value ArrDeclExprAST::execute(int lvl, int stackIdx)
@@ -118,11 +118,11 @@ Value UnaryExprAST::execute(int lvl, int stackIdx)
                             std::vector<Value> IdxV;
                             for (unsigned k = 0, e = Indices.size(); k != e; ++k) {
                                 IdxV.push_back(Indices[k]->execute(lvl, stackIdx));
-                                if (IdxV.back().isErr()) return LogErrorV("error while calculating indices");
+                                if (IdxV.back().isErr()) return LogErrorV("Error while calculating indices");
                             }
 
                             std::vector<int> LenDim = ArrTable[j][Op->getName()];
-                            if (IdxV.size() != LenDim.size()) return LogErrorV("dimension mismatch");
+                            if (IdxV.size() != LenDim.size()) return LogErrorV("Dimension mismatch");
 
                             int AddVal = 0;
                             for (int l = 0; l < IdxV.size(); l++)
@@ -134,7 +134,7 @@ Value UnaryExprAST::execute(int lvl, int stackIdx)
                             return Value(AddrTable[i][Op->getName()] + AddVal);
                         }
                     }
-                    if (j < 0) return LogErrorV(((Op->getName() + (std::string)(" is not an array"))).c_str());
+                    if (j < 0) return LogErrorV((((std::string)("\"") + Op->getName() + (std::string)("\" is not an array"))).c_str());
                 }
             }
         }
@@ -147,7 +147,7 @@ Value UnaryExprAST::execute(int lvl, int stackIdx)
                     return Value(AddrTable[i][Op->getName()]);
                 }
             }
-            return LogErrorV(std::string("variable \"" + Op->getName() + "\" not found").c_str());
+            return LogErrorV(std::string("Variable \"" + Op->getName() + "\" not found").c_str());
         }
     }
 
@@ -193,7 +193,7 @@ Value BinaryExprAST::execute(int lvl, int stackIdx) {
         {
             DeRefExprAST* LHSE = dynamic_cast<DeRefExprAST*>(LHS.get());
             if (!LHSE)
-                return LogErrorV("destination of '=' must be a variable");
+                return LogErrorV("Destination of '=' must be a variable");
             
             // update value at the memory address
             StackMemory.setValue((unsigned)LHSE->getExpr()->execute(lvl, stackIdx).getVal(), Val);
@@ -216,11 +216,11 @@ Value BinaryExprAST::execute(int lvl, int stackIdx) {
                             std::vector<Value> IdxV;
                             for (unsigned k = 0, e = Indices.size(); k != e; ++k) {
                                 IdxV.push_back(Indices[k]->execute(lvl, stackIdx));
-                                if (IdxV.back().isErr()) return LogErrorV("error while calculating indices");
+                                if (IdxV.back().isErr()) return LogErrorV("Error while calculating indices");
                             }
 
                             std::vector<int> LenDim = ArrTable[j][LHSE->getName()];
-                            if (IdxV.size() != LenDim.size()) return LogErrorV("dimension mismatch");
+                            if (IdxV.size() != LenDim.size()) return LogErrorV("Dimension mismatch");
 
                             int AddVal = 0;
                             for (int l = 0; l < IdxV.size(); l++)
@@ -233,7 +233,7 @@ Value BinaryExprAST::execute(int lvl, int stackIdx) {
                             break;
                         }
                     }
-                    if (j < 0) return LogErrorV(((LHSE->getName() + (std::string)(" is not an array"))).c_str());
+                    if (j < 0) return LogErrorV((((std::string)("\"") + LHSE->getName() + (std::string)("\" is not an array"))).c_str());
                 }
             }
         }
@@ -307,7 +307,7 @@ Value BinaryExprAST::execute(int lvl, int stackIdx) {
     // a call to it.
     
     std::shared_ptr<FunctionAST> F = Functions[(std::string("binary") + Op)];
-    if (!F) return LogErrorV("binary operator not found!");
+    if (!F) return LogErrorV("Binary operator not found");
 
     std::vector<Value> Ops;
     Ops.push_back(L);
@@ -335,7 +335,7 @@ Value CallExprAST::execute(int lvl, int stackIdx)
 
     // If argument mismatch error.
     if (CalleeF->arg_size() != Args.size())
-        return LogErrorV("Incorrect # arguments passed");
+        return LogErrorV("Incorrect number of arguments passed");
     
     return CalleeF->execute(ArgsV, lvl, stackIdx);
 }
@@ -522,7 +522,7 @@ Value BreakExprAST::execute(int lvl, int stackIdx)
 {
     Value RetVal = Expr->execute(lvl, stackIdx);
     if (RetVal.isErr())
-        return LogErrorV("failed to return a value");
+        return LogErrorV("Failed to return a value");
 
     return Value(type::_BREAK, RetVal.getVal());
 }
@@ -531,7 +531,7 @@ Value ReturnExprAST::execute(int lvl, int stackIdx)
 {
     Value RetVal = Expr->execute(lvl, stackIdx);
     if (RetVal.isErr())
-        return LogErrorV("failed to return a value");
+        return LogErrorV("Failed to return a value");
 
     return Value(type::_RETURN, RetVal.getVal());
 }

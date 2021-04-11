@@ -75,7 +75,7 @@ std::shared_ptr<ExprAST> ParseParenExpr(std::string& Code, int* Idx)
         return nullptr;
 
     if (CurTok != ')')
-        return LogError("expected ')'");
+        return LogError("Expected ')'");
     getNextToken(Code, Idx); // eat ).
     return V;
 }
@@ -113,7 +113,7 @@ std::shared_ptr<ExprAST> ParseIdentifierExpr(std::string& Code, int* Idx)
                 }
             }
         }
-        else return LogError("array index missing");
+        else return LogError("Array index missing");
 
         return std::make_shared<VariableExprAST>(IdName, Indices);
     }
@@ -165,7 +165,7 @@ std::shared_ptr<ExprAST> ParseArrDeclExpr(std::string& Code, int* Idx)
     std::string IdName = IdentifierStr;
     getNextToken(Code, Idx);
 
-    if (CurTok != '[') return LogError("expected '[' after array name");
+    if (CurTok != '[') return LogError("Expected '[' after array name");
 
     getNextToken(Code, Idx);
 
@@ -178,9 +178,9 @@ std::shared_ptr<ExprAST> ParseArrDeclExpr(std::string& Code, int* Idx)
             if (CurTok == tok_number && fmod(NumVal, 1.0) == 0)
             {
                 if ((unsigned)NumVal >= 1) Indices.push_back((unsigned)NumVal);
-                else return LogError("length of each dimension must be 1 or higher");
+                else return LogError("Length of each dimension must be 1 or higher");
             }
-            else return LogError("length of each dimension must be an integer");
+            else return LogError("Length of each dimension must be an integer");
             getNextToken(Code, Idx);
 
             if (CurTok == ']')
@@ -193,7 +193,7 @@ std::shared_ptr<ExprAST> ParseArrDeclExpr(std::string& Code, int* Idx)
             }
         }
     }
-    else return LogError("array dimension missing");
+    else return LogError("Array dimension missing");
 
     getNextToken(Code, Idx);
     return std::make_shared<ArrDeclExprAST>(IdName, Indices);
@@ -210,7 +210,7 @@ std::shared_ptr<ExprAST> ParseIfExpr(std::string& Code, int* Idx)
         return nullptr;
 
     if (CurTok != tok_then)
-        return LogError("expected then");
+        return LogError("Expected then");
     getNextToken(Code, Idx); // eat the then
 
     auto Then = ParseBlockExpression(Code, Idx);
@@ -237,20 +237,20 @@ std::shared_ptr<ExprAST> ParseForExpr(std::string& Code, int* Idx)
     getNextToken(Code, Idx); // eat the for.
 
     if (CurTok != tok_identifier)
-        return LogError("expected identifier");
+        return LogError("Expected identifier");
 
     std::string IdName = IdentifierStr;
     getNextToken(Code, Idx); // eat identifier.
 
     if (CurTok != '=')
-        return LogError("expected '=' after for");
+        return LogError("Expected '=' after identifier");
     getNextToken(Code, Idx); // eat '='.
 
     auto Start = ParseExpression(Code, Idx);
     if (!Start)
         return nullptr;
     if (CurTok != ',')
-        return LogError("expected ',' after for start value");
+        return LogError("Expected ','");
     getNextToken(Code, Idx);
 
     auto End = ParseExpression(Code, Idx);
@@ -358,7 +358,7 @@ std::shared_ptr<ExprAST> ParsePrimary(std::string& Code, int* Idx)
 {
     switch (CurTok) {
     default:
-        return LogError("unknown token when expecting an expression");
+        return LogError("Unknown token when expecting an expression");
     case tok_identifier:
         return ParseIdentifierExpr(Code, Idx);
     case '@':
@@ -375,7 +375,7 @@ std::shared_ptr<ExprAST> ParsePrimary(std::string& Code, int* Idx)
         return ParseRepeatExpr(Code, Idx);
     case tok_loop:
         return ParseLoopExpr(Code, Idx);
-    case '(': // must be the last one (for, var, if, etc also use '(')
+    case '(':
         return ParseParenExpr(Code, Idx);
     }
 }
@@ -396,7 +396,7 @@ std::shared_ptr<ExprAST> ParseUnary(std::string& Code, int* Idx)
         Opc = CurTok;
         getNextToken(Code, Idx);
     }
-    else return LogError(((std::string)"unknown token '" + (char)CurTok + (std::string)"'").c_str());
+    else return LogError(((std::string)"Unknown token '" + (char)CurTok + (std::string)"'").c_str());
 
     if (auto Operand = ParseUnary(Code, Idx))
         return std::make_shared<UnaryExprAST>(Opc, std::move(Operand));
