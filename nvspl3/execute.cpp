@@ -7,9 +7,12 @@
 #include "execute.h"
 #include "stdlibrary.h"
 #include "interactiveMode.h"
-#include <Windows.h>
 #include <cmath>
 #include <iostream>
+
+#ifdef _WIN32
+#include <Windows.h>
+#endif
 
 static std::vector<std::map<std::string, int>> AddrTable(1);
 static std::vector<std::map<std::string, std::vector<int>>> ArrTable(1);
