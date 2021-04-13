@@ -717,12 +717,18 @@ void execute(const char* filename)
     MainCode += EOF;
     fclose(fp);
 
+#ifdef _WIN32
     DWORD t = GetTickCount64();
+#endif
 
     binopPrecInit();
     getNextToken(MainCode, &mainIdx);
     MainLoop(MainCode, &mainIdx);
 
+#ifdef _WIN32
     DWORD diff = (GetTickCount64() - t);
     fprintf(stderr, "\nExecution finished (%.3lfs).\n", (double)diff / 1000);
+#else
+    fprintf(stderr, "\nExecution finished.\n");
+#endif
 }

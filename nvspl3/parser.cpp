@@ -623,6 +623,7 @@ std::shared_ptr<FunctionAST> ParseTopLevelExpr(std::string& Code, int* Idx)
     return nullptr;
 }
 
+/// importexpr ::= 'import' path
 std::shared_ptr<ImportAST> ParseImport(std::string& Code, int* Idx)
 {
     return std::make_shared<ImportAST>(getPath(Code, Idx) + ".sel");
