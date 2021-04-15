@@ -1,4 +1,5 @@
 # SEL Project
+SEL is a simple & educational programming language.
 
 ## 1. 언어 명세
 [TBW]
