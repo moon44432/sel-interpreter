@@ -628,7 +628,7 @@ void HandleImport(std::string& Code, int* Idx, int tmpCurTok, int tmpLastChar, b
     else GetNextToken(Code, Idx); // Skip token for error recovery.
 }
 
-/// top ::= definition | external | expression | ';'
+/// top ::= definition | import | external | expression | ';'
 void MainLoop(std::string& Code, int* Idx)
 {
     bool tmpFlag = false;
@@ -666,7 +666,7 @@ void MainLoop(std::string& Code, int* Idx)
     }
 }
 
-void execute(const char* FileName)
+void Execute(const char* FileName)
 {
     IsInteractive = false;
 
@@ -685,8 +685,8 @@ void execute(const char* FileName)
 #endif
 
     InitBinopPrec();
-    GetNextToken(MainCode, &mainIdx);
-    MainLoop(MainCode, &mainIdx);
+    GetNextToken(MainCode, &MainIdx);
+    MainLoop(MainCode, &MainIdx);
 
 #ifdef _WIN32
     DWORD diff = (GetTickCount64() - t);

@@ -28,10 +28,10 @@ void RunInteractiveShell()
     fprintf(stderr, (VerStr + " Interactive Shell\n").c_str());
     fprintf(stderr, "Type \"help;\" for help. Visit https://github.com/moon44432/sel-interpreter for more information.\n\n");
     fprintf(stderr, ">>> ");
-    GetNextToken(MainCode, &mainIdx);
+    GetNextToken(MainCode, &MainIdx);
 
     // Run the main "interpreter loop" now.
-    MainLoop(MainCode, &mainIdx);
+    MainLoop(MainCode, &MainIdx);
 }
 
 void RunHelp()

@@ -10,9 +10,9 @@ std::string IdentifierStr;
 std::string MainCode;
 double NumVal;
 int LastChar = ' ';
-int mainIdx = 0;
+int MainIdx = 0;
 
-int gettok(std::string& Code, int *Idx)
+int GetTok(std::string& Code, int *Idx)
 {
     // Skip any whitespace.
     while (isspace(LastChar))
@@ -97,7 +97,7 @@ int gettok(std::string& Code, int *Idx)
         } while (LastChar != EOF && LastChar != '\n' && LastChar != '\r');
 
         if (LastChar != EOF)
-            return gettok(Code, Idx);
+            return GetTok(Code, Idx);
     }
 
     if (LastChar == '{')
@@ -124,7 +124,7 @@ int gettok(std::string& Code, int *Idx)
     return ThisChar;
 }
 
-std::string getPath(std::string& Code, int* Idx)
+std::string GetPath(std::string& Code, int* Idx)
 {
     std::string PathStr;
     // Skip any whitespace.

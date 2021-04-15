@@ -26,4 +26,4 @@ void HandleImport(std::string& Code, int* Idx, int tmpCurTok, int tmpLastChar, b
 
 void MainLoop(std::string& Code, int* Idx);
 
-void execute(const char* FileName);
+void Execute(const char* FileName);

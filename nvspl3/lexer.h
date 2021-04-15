@@ -52,10 +52,10 @@ extern std::string MainCode;
 extern double NumVal;
 extern int CurTok;
 extern int LastChar;
-extern int mainIdx;
+extern int MainIdx;
 
 extern bool IsInteractive;
 
-int gettok(std::string& Code, int* Idx);
+int GetTok(std::string& Code, int* Idx);
 
-std::string getPath(std::string& Code, int* Idx);
+std::string GetPath(std::string& Code, int* Idx);

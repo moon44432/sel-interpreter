@@ -32,7 +32,7 @@ void InitBinopPrec()
 
 int GetNextToken(std::string& Code, int* Idx)
 {
-    return CurTok = gettok(Code, Idx);
+    return CurTok = GetTok(Code, Idx);
 }
 
 /// GetTokPrecedence - Get the precedence of the pending binary operator token.
@@ -625,5 +625,5 @@ std::shared_ptr<FunctionAST> ParseTopLevelExpr(std::string& Code, int* Idx)
 /// importexpr ::= 'import' path
 std::shared_ptr<ImportAST> ParseImport(std::string& Code, int* Idx)
 {
-    return std::make_shared<ImportAST>(getPath(Code, Idx) + ".sel");
+    return std::make_shared<ImportAST>(GetPath(Code, Idx) + ".sel");
 }
