@@ -19,6 +19,13 @@ static std::vector<std::map<std::string, std::vector<int>>> ArrTable(1);
 static std::map<std::string, std::shared_ptr<FunctionAST>> Functions;
 static Memory StackMemory;
 
+typedef enum class ArrAction
+{
+    _GETVAL,
+    _GETADDR,
+    _SETVAL,
+} arrAction;
+
 bool IsInteractive = true; // true for default
 
 Value LogErrorV(const char* Str)
@@ -41,40 +48,54 @@ Value DeRefExprAST::execute(int lvl, int stackIdx)
     return StackMemory.getValue((unsigned)Address.getVal());
 }
 
+Value HandleArr(std::string ArrName, std::vector<std::shared_ptr<ExprAST>>& Indices, arrAction Action, Value Val, int lvl, int stackIdx)
+{
+    for (int i = lvl; i >= 0; i--)
+    {
+        if (AddrTable[i].find(ArrName) != AddrTable[i].end())
+        {
+            for (int j = lvl; j >= 0; j--)
+            {
+                if (ArrTable[j].find(ArrName) != ArrTable[j].end())
+                {
+                    std::vector<Value> IdxV;
+                    for (unsigned k = 0, e = Indices.size(); k != e; ++k) {
+                        IdxV.push_back(Indices[k]->execute(lvl, stackIdx));
+                        if (IdxV.back().isErr()) return LogErrorV("Error while calculating indices");
+                    }
+
+                    std::vector<int> LenDim = ArrTable[j][ArrName];
+                    if (IdxV.size() != LenDim.size()) return LogErrorV("Dimension mismatch");
+
+                    int AddVal = 0;
+                    for (int l = 0; l < IdxV.size(); l++)
+                    {
+                        int MulVal = 1;
+                        for (int m = l + 1; m < IdxV.size(); m++) MulVal *= LenDim[m];
+                        AddVal += MulVal * (int)IdxV[l].getVal();
+                    }
+                    switch (Action)
+                    {
+                    case arrAction::_GETVAL:
+                        return StackMemory.getValue(AddrTable[i][ArrName] + AddVal);
+                    case arrAction::_GETADDR:
+                        return Value(AddrTable[i][ArrName] + AddVal);
+                    case arrAction::_SETVAL:
+                        StackMemory.setValue(AddrTable[i][ArrName] + AddVal, Val);
+                        return Val;
+                    }
+                }
+            }
+            return LogErrorV((((std::string)("\"") + ArrName + (std::string)("\" is not an array"))).c_str());
+        }
+    }
+}
+
 Value VariableExprAST::execute(int lvl, int stackIdx)
 {
     if (!Indices.empty()) // array element
     {
-        for (int i = lvl; i >= 0; i--)
-        {
-            if (AddrTable[i].find(Name) != AddrTable[i].end())
-            {
-                for (int j = lvl; j >= 0; j--)
-                {
-                    if (ArrTable[j].find(Name) != ArrTable[j].end())
-                    {
-                        std::vector<Value> IdxV;
-                        for (unsigned k = 0, e = Indices.size(); k != e; ++k) {
-                            IdxV.push_back(Indices[k]->execute(lvl, stackIdx));
-                            if (IdxV.back().isErr()) return LogErrorV("Error while calculating indices");
-                        }
-
-                        std::vector<int> LenDim = ArrTable[j][Name];
-                        if (IdxV.size() != LenDim.size()) return LogErrorV("Dimension mismatch");
-
-                        int AddVal = 0;
-                        for (int l = 0; l < IdxV.size(); l++)
-                        {
-                            int MulVal = 1;
-                            for (int m = l + 1; m < IdxV.size(); m++) MulVal *= LenDim[m];
-                            AddVal += MulVal * (int)IdxV[l].getVal();
-                        }
-                        return StackMemory.getValue(AddrTable[i][Name] + AddVal);
-                    }
-                }
-                return LogErrorV((((std::string)("\"") + Name + (std::string)("\" is not an array"))).c_str());
-            }
-        }
+        return HandleArr(Name, Indices, arrAction::_GETVAL, Value(type::_ERR), lvl, stackIdx);
     }
     else // normal variable
     {
@@ -109,37 +130,7 @@ Value UnaryExprAST::execute(int lvl, int stackIdx)
         std::vector<std::shared_ptr<ExprAST>> Indices = Op->getIndices();
         if (!Indices.empty()) // array element
         {
-            for (int i = lvl; i >= 0; i--)
-            {
-                if (AddrTable[i].find(Op->getName()) != AddrTable[i].end())
-                {
-                    int j;
-                    for (j = lvl; j >= 0; j--)
-                    {
-                        if (ArrTable[j].find(Op->getName()) != ArrTable[j].end())
-                        {
-                            std::vector<Value> IdxV;
-                            for (unsigned k = 0, e = Indices.size(); k != e; ++k) {
-                                IdxV.push_back(Indices[k]->execute(lvl, stackIdx));
-                                if (IdxV.back().isErr()) return LogErrorV("Error while calculating indices");
-                            }
-
-                            std::vector<int> LenDim = ArrTable[j][Op->getName()];
-                            if (IdxV.size() != LenDim.size()) return LogErrorV("Dimension mismatch");
-
-                            int AddVal = 0;
-                            for (int l = 0; l < IdxV.size(); l++)
-                            {
-                                int MulVal = 1;
-                                for (int m = l + 1; m < IdxV.size(); m++) MulVal *= LenDim[m];
-                                AddVal += MulVal * (int)IdxV[l].getVal();
-                            }
-                            return Value(AddrTable[i][Op->getName()] + AddVal);
-                        }
-                    }
-                    if (j < 0) return LogErrorV((((std::string)("\"") + Op->getName() + (std::string)("\" is not an array"))).c_str());
-                }
-            }
+            return HandleArr(Op->getName(), Indices, arrAction::_GETADDR, Value(type::_ERR), lvl, stackIdx);
         }
         else // normal variable
         {
@@ -207,38 +198,7 @@ Value BinaryExprAST::execute(int lvl, int stackIdx) {
         std::vector<std::shared_ptr<ExprAST>> Indices = LHSE->getIndices();
         if (!Indices.empty()) // array element
         {
-            for (int i = lvl; i >= 0; i--)
-            {
-                if (AddrTable[i].find(LHSE->getName()) != AddrTable[i].end())
-                {
-                    int j;
-                    for (j = lvl; j >= 0; j--)
-                    {
-                        if (ArrTable[j].find(LHSE->getName()) != ArrTable[j].end())
-                        {
-                            std::vector<Value> IdxV;
-                            for (unsigned k = 0, e = Indices.size(); k != e; ++k) {
-                                IdxV.push_back(Indices[k]->execute(lvl, stackIdx));
-                                if (IdxV.back().isErr()) return LogErrorV("Error while calculating indices");
-                            }
-
-                            std::vector<int> LenDim = ArrTable[j][LHSE->getName()];
-                            if (IdxV.size() != LenDim.size()) return LogErrorV("Dimension mismatch");
-
-                            int AddVal = 0;
-                            for (int l = 0; l < IdxV.size(); l++)
-                            {
-                                int MulVal = 1;
-                                for (int m = l + 1; m < IdxV.size(); m++) MulVal *= LenDim[m];
-                                AddVal += MulVal * (int)IdxV[l].getVal();
-                            }
-                            StackMemory.setValue(AddrTable[i][LHSE->getName()] + AddVal, Val);
-                            break;
-                        }
-                    }
-                    if (j < 0) return LogErrorV((((std::string)("\"") + LHSE->getName() + (std::string)("\" is not an array"))).c_str());
-                }
-            }
+            return HandleArr(LHSE->getName(), Indices, arrAction::_SETVAL, Val, lvl, stackIdx);
         }
         else // normal variable
         {
@@ -337,7 +297,7 @@ Value CallExprAST::execute(int lvl, int stackIdx)
         return LogErrorV("Unknown function referenced");
 
     // If argument mismatch error.
-    if (CalleeF->arg_size() != Args.size())
+    if (CalleeF->argsSize() != Args.size())
         return LogErrorV("Incorrect number of arguments passed");
     
     return CalleeF->execute(ArgsV, lvl, stackIdx);
@@ -604,7 +564,7 @@ void HandleDefinition(std::string& Code, int* Idx)
         if (IsInteractive) fprintf(stderr, "Read function definition\n");
         Functions[FnAST->getFuncName()] = FnAST;
     }
-    else getNextToken(Code, Idx); // Skip token for error recovery.
+    else GetNextToken(Code, Idx); // Skip token for error recovery.
 }
 
 void HandleTopLevelExpression(std::string& Code, int* Idx)
@@ -619,7 +579,7 @@ void HandleTopLevelExpression(std::string& Code, int* Idx)
             if (IsInteractive) fprintf(stderr, "Evaluated to %f\n", FP);
         }
     }
-    else getNextToken(Code, Idx); // Skip token for error recovery.
+    else GetNextToken(Code, Idx); // Skip token for error recovery.
 }
 
 void HandleImport(std::string& Code, int* Idx, int tmpCurTok, int tmpLastChar, bool tmpFlag)
@@ -640,7 +600,7 @@ void HandleImport(std::string& Code, int* Idx, int tmpCurTok, int tmpLastChar, b
         ModuleCode += EOF;
         fclose(fp);
 
-        getNextToken(ModuleCode, &moduleIdx);
+        GetNextToken(ModuleCode, &moduleIdx);
 
         while (true)
         {
@@ -650,13 +610,13 @@ void HandleImport(std::string& Code, int* Idx, int tmpCurTok, int tmpLastChar, b
             {
             case tok_import:
                 HandleImport(ModuleCode, &moduleIdx, CurTok, LastChar, tmpFlag);
-                getNextToken(ModuleCode, &moduleIdx);
+                GetNextToken(ModuleCode, &moduleIdx);
                 break;
             case tok_def:
                 HandleDefinition(ModuleCode, &moduleIdx);
                 break;
             default:
-                getNextToken(ModuleCode, &moduleIdx);
+                GetNextToken(ModuleCode, &moduleIdx);
                 break;
             }
         }
@@ -665,7 +625,7 @@ void HandleImport(std::string& Code, int* Idx, int tmpCurTok, int tmpLastChar, b
         if (tmpFlag) fprintf(stderr, "Successfully installed module \"%s\".\n",
             ImAST->getModuleName().c_str());
     }
-    else getNextToken(Code, Idx); // Skip token for error recovery.
+    else GetNextToken(Code, Idx); // Skip token for error recovery.
 }
 
 /// top ::= definition | external | expression | ';'
@@ -680,14 +640,14 @@ void MainLoop(std::string& Code, int* Idx)
         case tok_eof:
             return;
         case ';': // ignore top-level semicolons.
-            getNextToken(Code, Idx);
+            GetNextToken(Code, Idx);
             break;
         case tok_import:
             if (IsInteractive) tmpFlag = true;
             HandleImport(Code, Idx, CurTok, LastChar, tmpFlag);
             IsInteractive = tmpFlag;
             if (IsInteractive) fprintf(stderr, ">>> ");
-            getNextToken(Code, Idx);
+            GetNextToken(Code, Idx);
             break;
         case tok_def:
             HandleDefinition(Code, Idx);
@@ -695,8 +655,8 @@ void MainLoop(std::string& Code, int* Idx)
         case cmd_help:
             if (IsInteractive)
             {
-                getNextToken(Code, Idx);
-                runHelp();
+                GetNextToken(Code, Idx);
+                RunHelp();
             }
             break;
         default:
@@ -706,11 +666,11 @@ void MainLoop(std::string& Code, int* Idx)
     }
 }
 
-void execute(const char* filename)
+void execute(const char* FileName)
 {
     IsInteractive = false;
 
-    FILE* fp = fopen(filename, "r");
+    FILE* fp = fopen(FileName, "r");
     if (fp == NULL)
     {
         fprintf(stderr, "Error: Unknown file name\n");
@@ -724,8 +684,8 @@ void execute(const char* filename)
     DWORD t = GetTickCount64();
 #endif
 
-    binopPrecInit();
-    getNextToken(MainCode, &mainIdx);
+    InitBinopPrec();
+    GetNextToken(MainCode, &mainIdx);
     MainLoop(MainCode, &mainIdx);
 
 #ifdef _WIN32

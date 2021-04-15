@@ -8,6 +8,6 @@
 #include "ast.h"
 #include "execute.h"
 
-void runInteractiveShell();
+void RunInteractiveShell();
 
-void runHelp();
+void RunHelp();

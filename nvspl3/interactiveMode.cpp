@@ -4,7 +4,7 @@
 
 #include "interactiveMode.h"
 
-void runInteractiveShell()
+void RunInteractiveShell()
 {
     std::string VerStr = "SEL v1.1.1 ";
     #ifdef _WIN32
@@ -22,19 +22,19 @@ void runInteractiveShell()
     // Install standard binary operators.
     // 1 is lowest precedence.
     // highest.
-    binopPrecInit();
+    InitBinopPrec();
 
     // Prime the first token.
     fprintf(stderr, (VerStr + " Interactive Shell\n").c_str());
     fprintf(stderr, "Type \"help;\" for help. Visit https://github.com/moon44432/sel-interpreter for more information.\n\n");
     fprintf(stderr, ">>> ");
-    getNextToken(MainCode, &mainIdx);
+    GetNextToken(MainCode, &mainIdx);
 
     // Run the main "interpreter loop" now.
     MainLoop(MainCode, &mainIdx);
 }
 
-void runHelp()
+void RunHelp()
 {
     fprintf(stderr, "Welcome to SEL help utility.\n");
 }

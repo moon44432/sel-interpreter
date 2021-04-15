@@ -60,7 +60,7 @@ public:
     Value execute(int lvl, int stackIdx) override;
 };
 
-/// VariableExprAST - Expression class for referencing a variable, like "a".
+/// VariableExprAST - Expression class for referencing a variable or an array element, like "i" or "ar[2][3]".
 class VariableExprAST : public ExprAST {
     std::string Name;
     std::vector<std::shared_ptr<ExprAST>> Indices;
@@ -84,7 +84,7 @@ public:
     Value execute(int lvl, int stackIdx) override;
 };
 
-/// ArrDeclExprAST - Expression class for declaring an array, like "arr[2][2][2]".
+/// ArrDeclExprAST - Expression class for declaring an array, like "arr ar[2][2][2]".
 class ArrDeclExprAST : public ExprAST {
     std::string Name;
     std::vector<int> Indices;
@@ -258,7 +258,7 @@ public:
         std::shared_ptr<ExprAST> Body)
         : Proto(std::move(Proto)), Body(std::move(Body)) {}
     Value execute(std::vector<Value> Ops, int lvl, int stackIdx);
-    int arg_size() const { return Proto->getArgsSize(); }
+    int argsSize() const { return Proto->getArgsSize(); }
     const std::string getFuncName() const { return Proto->getName(); }
     const std::vector<std::string> getFuncArgs() const { return Proto->getArgs(); }
 };
@@ -272,9 +272,9 @@ public:
     const std::string getModuleName() const { return ModuleName; }
 };
 
-void binopPrecInit();
+void InitBinopPrec();
 
-int getNextToken(std::string& Code, int* Idx);
+int GetNextToken(std::string& Code, int* Idx);
 
 int GetTokPrecedence(std::string Op);
 
