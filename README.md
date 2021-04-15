@@ -10,24 +10,23 @@
 ```
 func fib(x) if x < 3 then 1 else fib(x - 1) + fib(x - 2)
 
-while 1 println(fib(input()))
+loop println(fib(input()))
 ```
 #### 2-1-2. 메모이제이션 기법을 사용한 프로그램
 메모이제이션 기법을 사용하여 큰 피보나치 수도 빠르게 계산합니다.
 ```
-arr memo[1024]
-
-func fib(x)
+func fib(x, ar)
 {
-    if memo[x] then memo[x]
+    if @(ar + x) then return @(ar + x)
     else
     {
         if x < 3 then 1 
-        else memo[x] = fib(x - 1) + fib(x - 2)
+        else @(ar + x) = fib(x - 1, ar) + fib(x - 2, ar)
     }
 }
 
-while 1 println(fib(input()))
+arr memo[1024]
+loop println(fib(input(), &memo))
 ```
 ### 2-2. 사용자 지정 연산자
 #### 2-2-1. 사용자 지정 이항 연산자 (몫 구하기)
@@ -49,7 +48,7 @@ func fib(x) if x < 3 then 1 else fib(x - 1) + fib(x - 2)
 ```
 import fib
 
-while 1 println(fib(input()))
+loop println(fib(input()))
 ```
 
 [TBW]
