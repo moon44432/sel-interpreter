@@ -3,6 +3,7 @@
 // execute.cpp
 
 #include "lexer.h"
+#include "value.h"
 #include "ast.h"
 #include "execute.h"
 #include "stdlibrary.h"
@@ -593,7 +594,7 @@ void HandleImport(std::string& Code, int* Idx, int tmpCurTok, int tmpLastChar, b
         FILE* fp = fopen(ImAST->getModuleName().c_str(), "r");
         if (fp == NULL)
         {
-            fprintf(stderr, "Error: cannot find module\n");
+            fprintf(stderr, "Error: Cannot find module\n");
             return;
         }
         while (!feof(fp)) ModuleCode += (char)fgetc(fp);

@@ -5,10 +5,14 @@
 #include "lexer.h"
 #include <iostream>
 #include <cctype>
+#include <cmath>
 
 std::string IdentifierStr;
 std::string MainCode;
+
+type NumValType;
 double NumVal;
+
 int LastChar = ' ';
 int MainIdx = 0;
 
@@ -85,6 +89,10 @@ int GetTok(std::string& Code, int *Idx)
         } while (isdigit(LastChar) || LastChar == '.');
 
         NumVal = strtod(NumStr.c_str(), nullptr);
+
+        if (trunc(NumVal) == NumVal) NumValType = type::_INT;
+        else NumValType = type::_DOUBLE;
+
         return tok_number;
     }
 

@@ -5,6 +5,7 @@
 #pragma once
 
 #include <string>
+#include "value.h"
 
 enum Token
 {
@@ -49,7 +50,10 @@ enum Token
 extern std::string IdentifierStr;
 extern std::string PathStr;
 extern std::string MainCode;
+
+extern type NumValType;
 extern double NumVal;
+
 extern int CurTok;
 extern int LastChar;
 extern int MainIdx;

@@ -6,6 +6,7 @@
 #pragma warning (disable:4996)
 
 #include "ast.h"
+#include "value.h"
 
 extern std::vector<std::string> StdFuncList;
 

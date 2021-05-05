@@ -15,34 +15,10 @@
 #include <string>
 #include <utility>
 #include <vector>
+#include "value.h"
 
 extern std::map<std::string, int> BinopPrecedence;
-extern std::string OpChr;
-
-typedef enum class Type
-{
-    _RETURN = -3,
-    _BREAK = -2,
-    _ERR = -1,
-
-    _INT = 1,
-    _DOUBLE = 2,
-} type;
-
-class Value
-{
-    type Type = type::_DOUBLE;
-    double Val = 0.0;
-public:
-    Value() {}
-    Value(double Val) : Val(Val) {}
-    Value(type Type) : Type(Type) {}
-    Value(type Type, double Val) : Type(Type), Val(Val) {}
-    void updateVal(double dVal) { Val = dVal; }
-    double getVal() { return Val; }
-    bool isErr() { return (Type == type::_ERR); }
-    type getType() { return Type; }
-};
+extern std::string OpChrList;
 
 /// ExprAST - Base class for all expression nodes.
 class ExprAST {

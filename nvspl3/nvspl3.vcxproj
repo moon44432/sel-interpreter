@@ -165,6 +165,7 @@
     <ClCompile Include="main.cpp" />
     <ClCompile Include="parser.cpp" />
     <ClCompile Include="stdlibrary.cpp" />
+    <ClCompile Include="value.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="execute.h" />
@@ -172,6 +173,7 @@
     <ClInclude Include="lexer.h" />
     <ClInclude Include="ast.h" />
     <ClInclude Include="stdlibrary.h" />
+    <ClInclude Include="value.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

@@ -4,6 +4,8 @@
 
 #pragma once
 
+#include "value.h"
+
 class Memory
 {
     std::vector<Value> Stack;

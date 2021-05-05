@@ -5,11 +5,10 @@
 #include "ast.h"
 #include "lexer.h"
 #include <iostream>
-#include <cmath>
 
 int CurTok;
 std::map<std::string, int> BinopPrecedence;
-std::string OpChr = "<>+-*/%!&|=";
+std::string OpChrList = "<>+-*/%!&|=";
 
 void InitBinopPrec()
 {
@@ -391,7 +390,7 @@ std::shared_ptr<ExprAST> ParseUnary(std::string& Code, int* Idx)
 
     // If this is a unary operator, read it.
     int Opc;
-    if (OpChr.find(CurTok) != std::string::npos)
+    if (OpChrList.find(CurTok) != std::string::npos)
     {
         Opc = CurTok;
         GetNextToken(Code, Idx);
@@ -414,8 +413,8 @@ std::shared_ptr<ExprAST> ParseBinOpRHS(std::string& Code, int* Idx, int ExprPrec
         std::string BinOp;
         BinOp += (char)CurTok;
 
-        if (OpChr.find(CurTok) != std::string::npos && 
-            OpChr.find(LastChar) != std::string::npos)
+        if (OpChrList.find(CurTok) != std::string::npos && 
+            OpChrList.find(LastChar) != std::string::npos)
         {
             BinOp += (char)LastChar;
             DoubleCh = true;
@@ -440,8 +439,8 @@ std::shared_ptr<ExprAST> ParseBinOpRHS(std::string& Code, int* Idx, int ExprPrec
         std::string NextOp;
         NextOp += (char)CurTok;
 
-        if (OpChr.find(CurTok) != std::string::npos &&
-            OpChr.find(LastChar) != std::string::npos)
+        if (OpChrList.find(CurTok) != std::string::npos &&
+            OpChrList.find(LastChar) != std::string::npos)
         {
             NextOp += (char)LastChar;
         }
@@ -544,7 +543,7 @@ std::shared_ptr<PrototypeAST> ParsePrototype(std::string& Code, int* Idx)
         std::string OpName;
         OpName += (char)CurTok;
         GetNextToken(Code, Idx);
-        if (OpChr.find(CurTok) != std::string::npos)
+        if (OpChrList.find(CurTok) != std::string::npos)
         {
             OpName += (char)CurTok;
             GetNextToken(Code, Idx);
