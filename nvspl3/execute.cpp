@@ -607,8 +607,8 @@ void HandleTopLevelExpression(std::string& Code, int* Idx)
         Value RetVal = FnAST->execute(std::vector<Value>());
         if (!RetVal.isErr() && IsInteractive)
         {
-            if (RetVal.getType().dType == dataType::_DOUBLE) fprintf(stderr, ">>> Evaluated to %f\n", RetVal.getdVal());
-            else if (RetVal.getType().dType == dataType::_INT) fprintf(stderr, ">>> Evaluated to %d\n", RetVal.getiVal());
+            if (RetVal.getType().dType == dataType::_DOUBLE) fprintf(stderr, "Evaluated to %f\n", RetVal.getdVal());
+            else if (RetVal.getType().dType == dataType::_INT) fprintf(stderr, "Evaluated to %d\n", RetVal.getiVal());
         }
     }
     else GetNextToken(Code, Idx); // Skip token for error recovery.
