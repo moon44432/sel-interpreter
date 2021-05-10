@@ -18,30 +18,43 @@ Value CallStdFunc(const std::string& Name, const std::vector<Value>& Args)
 {
     if (Name == "print") return print(Args);
     else if (Name == "println") return println(Args);
-    else if (Name == "printch") return printch(Args);
+    else if (Name == "printch") return println(Args);
     else if (Name == "input") return input(Args);
     else if (Name == "inputch") return inputch(Args);
 
-    return Value(type::_ERR);
+    return Value(Err);
 }
 
 Value print(const std::vector<Value>& Args)
 {
-    for (auto Arg : Args) fprintf(stderr, "%f ", Arg.getVal());
-    return Value(0.0);
+    for (auto Arg : Args)
+    {
+        if (Arg.getType().dType == dataType::_DOUBLE) fprintf(stderr, "%f ", Arg.getVal().dbl);
+        else if (Arg.getType().dType == dataType::_INT) fprintf(stderr, "%d ", Arg.getVal().i);
+    }
+    return Value(0);
 }
 
 Value println(const std::vector<Value>& Args)
 {
-    for (auto Arg : Args) fprintf(stderr, "%f ", Arg.getVal());
+    for (auto Arg : Args)
+    {
+        if (Arg.getType().dType == dataType::_DOUBLE) fprintf(stderr, "%f ", Arg.getVal().dbl);
+        else if (Arg.getType().dType == dataType::_INT) fprintf(stderr, "%d ", Arg.getVal().i);
+    }
     fprintf(stderr, "\n");
-    return Value(0.0);
+    return Value(0);
 }
 
 Value printch(const std::vector<Value>& Args)
 {
-    for (auto Arg : Args) fprintf(stderr, "%c", (char)(Arg.getVal()));
-    return Value(0.0);
+    for (auto Arg : Args)
+    {
+        if (Arg.getType().dType == dataType::_DOUBLE) fprintf(stderr, "%c ", (char)Arg.getVal().dbl);
+        else if (Arg.getType().dType == dataType::_INT) fprintf(stderr, "%c ", (char)Arg.getVal().i);
+    }
+    fprintf(stderr, "\n");
+    return Value(0);
 }
 
 Value input(const std::vector<Value>& Args)
@@ -50,7 +63,9 @@ Value input(const std::vector<Value>& Args)
 
     double Val;
     fscanf(stdin, "%lf", &Val);
-    return Value(Val);
+
+    if (trunc(Val) == Val) return Value((int)Val);
+    else return Value(Val);
 }
 
 Value inputch(const std::vector<Value>& Args)
@@ -59,5 +74,5 @@ Value inputch(const std::vector<Value>& Args)
 
     char Val;
     fscanf(stdin, "%c", &Val);
-    return Value((double)Val);
+    return Value(Val);
 }

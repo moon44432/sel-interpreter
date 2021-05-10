@@ -38,10 +38,15 @@ enum Token
     // var definition
     tok_var = -45,
     tok_arr = -46,
+    tok_as = -47,
 
     // block
     tok_openblock = -90,
     tok_closeblock = -91,
+
+    // data types
+    tok_int = -101,
+    tok_dbl = -102,
 
     // interactive mode commands
     cmd_help = -201,

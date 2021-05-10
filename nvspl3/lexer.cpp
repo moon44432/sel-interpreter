@@ -69,6 +69,14 @@ int GetTok(std::string& Code, int *Idx)
             return tok_break;
         if (IdentifierStr == "return")
             return tok_return;
+        if (IdentifierStr == "var")
+            return tok_var;
+        if (IdentifierStr == "as")
+            return tok_as;
+        if (IdentifierStr == "int")
+            return tok_int;
+        if (IdentifierStr == "double")
+            return tok_dbl;
 
         // interactive mode commands
         if (IdentifierStr == "help")
@@ -90,8 +98,8 @@ int GetTok(std::string& Code, int *Idx)
 
         NumVal = strtod(NumStr.c_str(), nullptr);
 
-        if (trunc(NumVal) == NumVal) NumValType = type::_INT;
-        else NumValType = type::_DOUBLE;
+        if (trunc(NumVal) == NumVal) NumValType = Int;
+        else NumValType = Dbl;
 
         return tok_number;
     }

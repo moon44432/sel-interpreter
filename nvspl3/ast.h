@@ -24,7 +24,7 @@ extern std::string OpChrList;
 class ExprAST {
 public:
     virtual ~ExprAST() = default;
-    virtual Value execute(int lvl, int stackIdx) = 0;
+    virtual Value execute() = 0;
 };
 
 /// NumberExprAST - Expression class for numeric literals like "1.0".
@@ -32,8 +32,8 @@ class NumberExprAST : public ExprAST {
     Value Val;
 
 public:
-    NumberExprAST(double Val) : Val(Val) {}
-    Value execute(int lvl, int stackIdx) override;
+    NumberExprAST(Value Val) : Val(Val) {}
+    Value execute() override;
 };
 
 /// VariableExprAST - Expression class for referencing a variable or an array element, like "i" or "ar[2][3]".
@@ -47,7 +47,7 @@ public:
     VariableExprAST(const std::string& Name) : Name(Name) {}
     const std::string& getName() const { return Name; }
     const std::vector<std::shared_ptr<ExprAST>> getIndices() const { return Indices; }
-    Value execute(int lvl, int stackIdx) override;
+    Value execute() override;
 };
 
 /// DeRefExprAST - Expression class for dereferencing a memory address, like "@a" or "@(ptr + 10)".
@@ -57,7 +57,7 @@ class DeRefExprAST : public ExprAST {
 public:
     DeRefExprAST(std::shared_ptr<ExprAST> Addr) : AddrExpr(std::move(Addr)) {}
     const std::shared_ptr<ExprAST> getExpr() { return AddrExpr; }
-    Value execute(int lvl, int stackIdx) override;
+    Value execute() override;
 };
 
 /// ArrDeclExprAST - Expression class for declaring an array, like "arr ar[2][2][2]".
@@ -67,7 +67,7 @@ class ArrDeclExprAST : public ExprAST {
 
 public:
     ArrDeclExprAST(const std::string& Name, std::vector<int>& Indices) : Name(Name), Indices(Indices) {}
-    Value execute(int lvl, int stackIdx) override;
+    Value execute() override;
 };
 
 /// UnaryExprAST - Expression class for a unary operator.
@@ -78,7 +78,7 @@ class UnaryExprAST : public ExprAST {
 public:
     UnaryExprAST(char Opcode, std::shared_ptr<ExprAST> Operand)
         : Opcode(Opcode), Operand(std::move(Operand)) {}
-    Value execute(int lvl, int stackIdx) override;
+    Value execute() override;
 };
 
 /// BinaryExprAST - Expression class for a binary operator.
@@ -90,7 +90,7 @@ public:
     BinaryExprAST(const std::string& Op, std::shared_ptr<ExprAST> LHS,
         std::shared_ptr<ExprAST> RHS)
         : Op(Op), LHS(std::move(LHS)), RHS(std::move(RHS)) {}
-    Value execute(int lvl, int stackIdx) override;
+    Value execute() override;
 };
 
 /// CallExprAST - Expression class for function calls.
@@ -102,7 +102,7 @@ public:
     CallExprAST(const std::string& Callee,
         std::vector<std::shared_ptr<ExprAST>> Args)
         : Callee(Callee), Args(std::move(Args)) {}
-    Value execute(int lvl, int stackIdx) override;
+    Value execute() override;
 };
 
 /// IfExprAST - Expression class for if/then/else.
@@ -115,7 +115,7 @@ public:
         : Cond(std::move(Cond)), Then(std::move(Then)), Else(std::move(Else)) {}
     IfExprAST(std::shared_ptr<ExprAST> Cond, std::shared_ptr<ExprAST> Then)
         : Cond(std::move(Cond)), Then(std::move(Then)) { Else = nullptr; }
-    Value execute(int lvl, int stackIdx) override;
+    Value execute() override;
 };
 
 /// ForExprAST - Expression class for for.
@@ -129,7 +129,7 @@ public:
         std::shared_ptr<ExprAST> Body)
         : VarName(VarName), Start(std::move(Start)), End(std::move(End)),
         Step(std::move(Step)), Body(std::move(Body)) {}
-    Value execute(int lvl, int stackIdx) override;
+    Value execute() override;
 };
 
 /// WhileExprAST - Expression class for while.
@@ -139,7 +139,7 @@ class WhileExprAST : public ExprAST {
 public:
     WhileExprAST(std::shared_ptr<ExprAST> Cond, std::shared_ptr<ExprAST> Body)
         : Cond(std::move(Cond)), Body(std::move(Body)) {}
-    Value execute(int lvl, int stackIdx) override;
+    Value execute() override;
 };
 
 /// RepeatExprAST - Expression class for rept.
@@ -150,7 +150,7 @@ class RepeatExprAST : public ExprAST {
 public:
     RepeatExprAST(std::shared_ptr<ExprAST> IterNum, std::shared_ptr<ExprAST> Body)
         : IterNum(std::move(IterNum)), Body(std::move(Body)) {}
-    Value execute(int lvl, int stackIdx) override;
+    Value execute() override;
 };
 
 /// LoopExprAST - Expression class for loop.
@@ -159,7 +159,7 @@ class LoopExprAST : public ExprAST {
 
 public:
     LoopExprAST(std::shared_ptr<ExprAST> Body) : Body(std::move(Body)) {}
-    Value execute(int lvl, int stackIdx) override;
+    Value execute() override;
 };
 
 /// BlockExprAST - Sequence of expressions.
@@ -169,7 +169,7 @@ class BlockExprAST : public ExprAST {
 public:
     BlockExprAST(std::vector<std::shared_ptr<ExprAST>> Expressions)
         : Expressions(std::move(Expressions)) {}
-    Value execute(int lvl, int stackIdx) override;
+    Value execute() override;
 };
 
 /// BreakExprAST - Expression class for break.
@@ -178,7 +178,7 @@ class BreakExprAST : public ExprAST {
 
 public:
     BreakExprAST(std::shared_ptr<ExprAST> Expr) : Expr(std::move(Expr)) {}
-    Value execute(int lvl, int stackIdx) override;
+    Value execute() override;
 };
 
 /// ReturnExprAST - Expression class for return.
@@ -187,7 +187,7 @@ class ReturnExprAST : public ExprAST {
 
 public:
     ReturnExprAST(std::shared_ptr<ExprAST> Expr) : Expr(std::move(Expr)) {}
-    Value execute(int lvl, int stackIdx) override;
+    Value execute() override;
 };
 
 /// PrototypeAST - This class represents the "prototype" for a function,
@@ -198,11 +198,11 @@ class PrototypeAST {
     std::vector<std::string> Args;
     std::vector<bool> ArgsType; // 0 - variable, 1 - array
     bool IsOperator;
-    unsigned Precedence; // Precedence if a binary op.
+    unsigned int Precedence; // Precedence if a binary op.
 
 public:
     PrototypeAST(const std::string& Name, const std::vector<std::string>& Args,
-        bool IsOperator = false, unsigned Prec = 0)
+        bool IsOperator = false, unsigned int Prec = 0)
         : Name(Name), Args(Args), IsOperator(IsOperator),
         Precedence(Prec) {}
 
@@ -218,7 +218,7 @@ public:
         else return Name.substr(0, Name.find("unary"));
     }
 
-    unsigned getBinaryPrecedence() const { return Precedence; }
+    unsigned int getBinaryPrecedence() const { return Precedence; }
     const int getArgsSize() const { return Args.size(); }
     const std::vector<std::string>& getArgs() const { return Args; }
     const std::vector<bool>& getArgsType() const { return ArgsType; }
@@ -233,7 +233,7 @@ public:
     FunctionAST(std::shared_ptr<PrototypeAST> Proto,
         std::shared_ptr<ExprAST> Body)
         : Proto(std::move(Proto)), Body(std::move(Body)) {}
-    Value execute(std::vector<Value> Ops, int lvl, int stackIdx);
+    Value execute(std::vector<Value> Ops);
     int argsSize() const { return Proto->getArgsSize(); }
     const std::string getFuncName() const { return Proto->getName(); }
     const std::vector<std::string> getFuncArgs() const { return Proto->getArgs(); }

@@ -6,15 +6,23 @@
 
 #include "value.h"
 
+typedef struct NamedValue
+{
+    std::string Name;
+    int Addr;
+
+    bool IsArr = false;
+    std::vector<int> Dim;
+} namedValue;
+
 class Memory
 {
     std::vector<Value> Stack;
 public:
-    Value* getValuePtr(int idx) { return &Stack[idx]; }
-    Value getValue(int idx) { return Stack[idx]; }
-    void setValue(int idx, Value Val) { Stack[idx] = Val; }
-    void quickDelete(int idx) { for (int i = idx; i < Stack.size(); i++) Stack.pop_back(); }
-    int addValue(Value Val) { Stack.push_back(Val); return Stack.size() - 1; }
+    Value getValue(int Addr) { return Stack[Addr]; }
+    void setValue(int Addr, Value Val) { Stack[Addr] = Val; }
+    void deleteScope(int Addr) { int size = Stack.size(); for (int i = Addr; i < size; i++) Stack.pop_back(); }
+    int push(Value Val) { Stack.push_back(Val); return Stack.size() - 1; }
     int getSize() { return Stack.size(); }
 };
 

@@ -60,7 +60,11 @@ std::shared_ptr<PrototypeAST> LogErrorP(const char* Str)
 /// numberexpr ::= number
 std::shared_ptr<ExprAST> ParseNumberExpr(std::string& Code, int* Idx)
 {
-    auto Expr = std::make_shared<NumberExprAST>(NumVal);
+    Value Val;
+    if (NumValType.dType == dataType::_DOUBLE) Val = Value(NumVal);
+    else if (NumValType.dType == dataType::_INT) Val = Value((int)NumVal);
+
+    auto Expr = std::make_shared<NumberExprAST>(Val);
     GetNextToken(Code, Idx); // consume the number
     return std::move(Expr);
 }
@@ -174,12 +178,11 @@ std::shared_ptr<ExprAST> ParseArrDeclExpr(std::string& Code, int* Idx)
     {
         while (true)
         {
-            if (CurTok == tok_number && fmod(NumVal, 1.0) == 0)
+            if (CurTok == tok_number && NumValType.dType == dataType::_INT && (int)NumVal >= 1)
             {
-                if ((unsigned)NumVal >= 1) Indices.push_back((unsigned)NumVal);
-                else return LogError("Length of each dimension must be 1 or higher");
+                Indices.push_back((int)NumVal);
             }
-            else return LogError("Length of each dimension must be an integer");
+            else return LogError("Length of each dimension must be an integer 1 or higher");
             GetNextToken(Code, Idx);
 
             if (CurTok == ']')
@@ -193,8 +196,8 @@ std::shared_ptr<ExprAST> ParseArrDeclExpr(std::string& Code, int* Idx)
         }
     }
     else return LogError("Array dimension missing");
-
     GetNextToken(Code, Idx);
+
     return std::make_shared<ArrDeclExprAST>(IdName, Indices);
 }
 
@@ -515,8 +518,8 @@ std::shared_ptr<PrototypeAST> ParsePrototype(std::string& Code, int* Idx)
 {
     std::string FnName;
 
-    unsigned Kind = 0; // 0 = identifier, 1 = unary, 2 = binary.
-    unsigned BinaryPrecedence = 18;
+    unsigned int Kind = 0; // 0 = identifier, 1 = unary, 2 = binary.
+    unsigned int BinaryPrecedence = 18;
 
     switch (CurTok) {
     default:
@@ -554,7 +557,7 @@ std::shared_ptr<PrototypeAST> ParsePrototype(std::string& Code, int* Idx)
         if (CurTok == tok_number) {
             if (NumVal < 1 || NumVal > 18)
                 return LogErrorP("Invalid precedence: must be 1~18");
-            BinaryPrecedence = (unsigned)NumVal;
+            BinaryPrecedence = (unsigned int)NumVal;
             GetNextToken(Code, Idx);
         }
 
