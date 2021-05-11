@@ -20,9 +20,19 @@
 extern std::map<std::string, int> BinopPrecedence;
 extern std::string OpChrList;
 
+typedef enum
+{
+    _DEFAULT = 0,
+    _VAR = 1,
+    _DEREF = 2,
+} nodeType;
+
 /// ExprAST - Base class for all expression nodes.
 class ExprAST {
+    int NodeType = nodeType::_DEFAULT;
 public:
+    int getNodeType() { return NodeType; }
+    void setNodeType(int Type) { NodeType = Type; }
     virtual ~ExprAST() = default;
     virtual Value execute() = 0;
 };
@@ -43,8 +53,12 @@ class VariableExprAST : public ExprAST {
 
 public:
     VariableExprAST(const std::string& Name, std::vector<std::shared_ptr<ExprAST>>& Indices)
-        : Name(Name), Indices(Indices) {}
-    VariableExprAST(const std::string& Name) : Name(Name) {}
+        : Name(Name), Indices(Indices) {
+        setNodeType(nodeType::_VAR);
+    }
+    VariableExprAST(const std::string& Name) : Name(Name) {
+        setNodeType(nodeType::_VAR);
+    }
     const std::string& getName() const { return Name; }
     const std::vector<std::shared_ptr<ExprAST>> getIndices() const { return Indices; }
     Value execute() override;
@@ -55,7 +69,9 @@ class DeRefExprAST : public ExprAST {
     std::shared_ptr<ExprAST> AddrExpr;
 
 public:
-    DeRefExprAST(std::shared_ptr<ExprAST> Addr) : AddrExpr(std::move(Addr)) {}
+    DeRefExprAST(std::shared_ptr<ExprAST> Addr) : AddrExpr(std::move(Addr)) {
+        setNodeType(nodeType::_DEREF);
+    }
     const std::shared_ptr<ExprAST> getExpr() { return AddrExpr; }
     Value execute() override;
 };

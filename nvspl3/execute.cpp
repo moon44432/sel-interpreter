@@ -180,12 +180,12 @@ Value BinaryExprAST::execute() {
             return Value(Err);
 
         // Assignment requires the LHS to be an identifier.
-        VariableExprAST* LHSE = dynamic_cast<VariableExprAST*>(LHS.get());
-        if (!LHSE)
+        VariableExprAST* LHSE;
+
+        if (LHS->getNodeType() == nodeType::_VAR) LHSE = static_cast<VariableExprAST*>(LHS.get());
+        else if (LHS->getNodeType() == nodeType::_DEREF)
         {
-            DeRefExprAST* LHSE = dynamic_cast<DeRefExprAST*>(LHS.get());
-            if (!LHSE)
-                return LogErrorV("Destination of '=' must be a variable");
+            DeRefExprAST* LHSE = static_cast<DeRefExprAST*>(LHS.get());
             
             // update value at the memory address
             Value Addr = LHSE->getExpr()->execute();
@@ -194,6 +194,7 @@ Value BinaryExprAST::execute() {
             StackMemory.setValue(Addr.getVal().i, Val);
             return Val;
         }
+        else return LogErrorV("Destination of '=' must be a variable");
 
         // Look up the name.
         std::vector<std::shared_ptr<ExprAST>> Indices = LHSE->getIndices();
