@@ -5,6 +5,10 @@
 #pragma once
 
 #include "value.h"
+#include <vector>
+
+extern int MainIdx;
+extern bool IsInteractive;
 
 typedef struct NamedValue
 {

@@ -61,9 +61,6 @@ extern double NumVal;
 
 extern int CurTok;
 extern int LastChar;
-extern int MainIdx;
-
-extern bool IsInteractive;
 
 int GetTok(std::string& Code, int* Idx);
 

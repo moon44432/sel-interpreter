@@ -50,7 +50,7 @@ Value DeRefExprAST::execute()
     return LogErrorV("Address must be an unsigned integer");
 }
 
-Value HandleArr(std::string ArrName, std::vector<std::shared_ptr<ExprAST>>& Indices, arrAction Action, Value Val)
+Value HandleArr(std::string ArrName, const std::vector<std::shared_ptr<ExprAST>>& Indices, arrAction Action, Value Val)
 {
     for (int i = SymTbl.size() - 1; i >= 0; i--)
     {
@@ -87,7 +87,7 @@ Value HandleArr(std::string ArrName, std::vector<std::shared_ptr<ExprAST>>& Indi
     return LogErrorV((((std::string)("\"") + ArrName + (std::string)("\" is not an array"))).c_str());
 }
 
-Value HandleArr(std::string ArrName, std::vector<std::shared_ptr<ExprAST>>& Indices, arrAction Action) { return HandleArr(ArrName, Indices, Action, Value()); }
+Value HandleArr(std::string ArrName, const std::vector<std::shared_ptr<ExprAST>>& Indices, arrAction Action) { return HandleArr(ArrName, Indices, Action, Value()); }
 
 Value VariableExprAST::execute()
 {
@@ -122,7 +122,7 @@ Value UnaryExprAST::execute()
         VariableExprAST* Op = static_cast<VariableExprAST*>(Operand.get());
         if (!Op) return LogErrorV("Operand of '&' must be a variable");
 
-        std::vector<std::shared_ptr<ExprAST>> Indices = Op->getIndices();
+        const std::vector<std::shared_ptr<ExprAST>>& Indices = Op->getIndices();
         if (!Indices.empty()) // array element
         {
             return HandleArr(Op->getName(), Indices, arrAction::_GETADDR);

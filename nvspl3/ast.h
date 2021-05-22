@@ -17,9 +17,6 @@
 #include <vector>
 #include "value.h"
 
-extern std::map<std::string, int> BinopPrecedence;
-extern std::string OpChrList;
-
 typedef enum
 {
     _DEFAULT = 0,
@@ -60,7 +57,7 @@ public:
         setNodeType(nodeType::_VAR);
     }
     const std::string& getName() const { return Name; }
-    const std::vector<std::shared_ptr<ExprAST>> getIndices() const { return Indices; }
+    const std::vector<std::shared_ptr<ExprAST>>& getIndices() const { return Indices; }
     Value execute() override;
 };
 
@@ -72,7 +69,7 @@ public:
     DeRefExprAST(std::shared_ptr<ExprAST> Addr) : AddrExpr(std::move(Addr)) {
         setNodeType(nodeType::_DEREF);
     }
-    const std::shared_ptr<ExprAST> getExpr() { return AddrExpr; }
+    const std::shared_ptr<ExprAST> const getExpr() { return AddrExpr; }
     Value execute() override;
 };
 
@@ -212,7 +209,6 @@ public:
 class PrototypeAST {
     std::string Name;
     std::vector<std::string> Args;
-    std::vector<bool> ArgsType; // 0 - variable, 1 - array
     bool IsOperator;
     unsigned int Precedence; // Precedence if a binary op.
 
@@ -237,7 +233,6 @@ public:
     unsigned int getBinaryPrecedence() const { return Precedence; }
     const int getArgsSize() const { return Args.size(); }
     const std::vector<std::string>& getArgs() const { return Args; }
-    const std::vector<bool>& getArgsType() const { return ArgsType; }
 };
 
 /// FunctionAST - This class represents a function definition itself.

@@ -3,6 +3,7 @@
 // lexer.cpp
 
 #include "lexer.h"
+#include "execute.h"
 #include <iostream>
 #include <cctype>
 #include <cmath>
