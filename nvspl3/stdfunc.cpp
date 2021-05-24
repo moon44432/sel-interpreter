@@ -1,8 +1,8 @@
 
 // SEL Project
-// stdlibrary.cpp
+// stdfunc.cpp
 
-#include "stdlibrary.h"
+#include "stdfunc.h"
 #include "execute.h"
 #include "value.h"
 
@@ -22,15 +22,15 @@ Value CallStdFunc(const std::string& Name, const std::vector<Value>& Args)
     else if (Name == "input") return input(Args);
     else if (Name == "inputch") return inputch(Args);
 
-    return Value(Err);
+    return Value(valueType::val_err);
 }
 
 Value print(const std::vector<Value>& Args)
 {
     for (auto Arg : Args)
     {
-        if (Arg.getType().dType == dataType::_DOUBLE) fprintf(stderr, "%f ", Arg.getVal().dbl);
-        else if (Arg.getType().dType == dataType::_INT) fprintf(stderr, "%d ", Arg.getVal().i);
+        if (Arg.getdType() == dataType::t_double) fprintf(stderr, "%f ", Arg.getVal().dbl);
+        else if (Arg.getdType() == dataType::t_int) fprintf(stderr, "%d ", Arg.getVal().i);
     }
     return Value(0);
 }
@@ -39,8 +39,8 @@ Value println(const std::vector<Value>& Args)
 {
     for (auto Arg : Args)
     {
-        if (Arg.getType().dType == dataType::_DOUBLE) fprintf(stderr, "%f ", Arg.getVal().dbl);
-        else if (Arg.getType().dType == dataType::_INT) fprintf(stderr, "%d ", Arg.getVal().i);
+        if (Arg.getdType() == dataType::t_double) fprintf(stderr, "%f ", Arg.getVal().dbl);
+        else if (Arg.getdType() == dataType::t_int) fprintf(stderr, "%d ", Arg.getVal().i);
     }
     fprintf(stderr, "\n");
     return Value(0);
@@ -50,8 +50,8 @@ Value printch(const std::vector<Value>& Args)
 {
     for (auto Arg : Args)
     {
-        if (Arg.getType().dType == dataType::_DOUBLE) fprintf(stderr, "%c ", (char)Arg.getVal().dbl);
-        else if (Arg.getType().dType == dataType::_INT) fprintf(stderr, "%c ", (char)Arg.getVal().i);
+        if (Arg.getdType() == dataType::t_double) fprintf(stderr, "%c ", (char)Arg.getVal().dbl);
+        else if (Arg.getdType() == dataType::t_int) fprintf(stderr, "%c ", (char)Arg.getVal().i);
     }
     fprintf(stderr, "\n");
     return Value(0);

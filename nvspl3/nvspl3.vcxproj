@@ -164,7 +164,7 @@
     <ClCompile Include="lexer.cpp" />
     <ClCompile Include="main.cpp" />
     <ClCompile Include="parser.cpp" />
-    <ClCompile Include="stdlibrary.cpp" />
+    <ClCompile Include="stdfunc.cpp" />
     <ClCompile Include="value.cpp" />
   </ItemGroup>
   <ItemGroup>
@@ -172,7 +172,7 @@
     <ClInclude Include="interactiveMode.h" />
     <ClInclude Include="lexer.h" />
     <ClInclude Include="ast.h" />
-    <ClInclude Include="stdlibrary.h" />
+    <ClInclude Include="stdfunc.h" />
     <ClInclude Include="value.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />

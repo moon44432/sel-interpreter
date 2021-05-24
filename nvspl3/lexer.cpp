@@ -8,79 +8,77 @@
 #include <cctype>
 #include <cmath>
 
-std::string IdentifierStr;
-std::string MainCode;
+std::string IdStr;
 
-type NumValType;
+dataType NumType;
 double NumVal;
 
 int LastChar = ' ';
-int MainIdx = 0;
 
-int GetTok(std::string& Code, int *Idx)
+int GetTok(std::string& Code, int& Idx)
 {
     // Skip any whitespace.
     while (isspace(LastChar))
     {
         if (IsInteractive) LastChar = getchar();
-        else LastChar = Code[(*Idx)++];
+        else LastChar = Code[Idx++];
     }
 
     if (isalpha(LastChar)) // identifier: [a-zA-Z][a-zA-Z0-9_]*
     { 
-        IdentifierStr = LastChar;
+        IdStr = LastChar;
         
         while (true)
         {
             if (IsInteractive) LastChar = getchar();
-            else LastChar = Code[(*Idx)++];
+            else LastChar = Code[Idx++];
 
-            if (isalnum(LastChar) || LastChar == '_') IdentifierStr += LastChar;
+            if (isalnum(LastChar) || LastChar == '_') IdStr += LastChar;
             else break;
         }
 
         // keywords
-        if (IdentifierStr == "func")
+        if (IdStr == "func")
             return tok_def;
-        if (IdentifierStr == "extern")
+        if (IdStr == "extern")
             return tok_extern;
-        if (IdentifierStr == "import")
+        if (IdStr == "import")
             return tok_import;
-        if (IdentifierStr == "arr")
+        if (IdStr == "arr")
             return tok_arr;
-        if (IdentifierStr == "if")
+        if (IdStr == "if")
             return tok_if;
-        if (IdentifierStr == "then")
+        if (IdStr == "then")
             return tok_then;
-        if (IdentifierStr == "else")
+        if (IdStr == "else")
             return tok_else;
-        if (IdentifierStr == "for")
+        if (IdStr == "for")
             return tok_for;
-        if (IdentifierStr == "while")
+        if (IdStr == "while")
             return tok_while;
-        if (IdentifierStr == "rept")
+        if (IdStr == "rept")
             return tok_repeat;
-        if (IdentifierStr == "loop")
+        if (IdStr == "loop")
             return tok_loop;
-        if (IdentifierStr == "binary")
+        if (IdStr == "binary")
             return tok_binary;
-        if (IdentifierStr == "unary")
+        if (IdStr == "unary")
             return tok_unary;
-        if (IdentifierStr == "break")
+        if (IdStr == "break")
             return tok_break;
-        if (IdentifierStr == "return")
+        if (IdStr == "return")
             return tok_return;
-        if (IdentifierStr == "var")
+        if (IdStr == "var")
             return tok_var;
-        if (IdentifierStr == "as")
+        if (IdStr == "as")
             return tok_as;
-        if (IdentifierStr == "int")
+        if (IdStr == "int")
             return tok_int;
-        if (IdentifierStr == "double")
+        if (IdStr == "double")
             return tok_dbl;
 
         // interactive mode commands
-        if (IdentifierStr == "help")
+        if (IdStr == "help")
             return cmd_help;
 
         return tok_identifier;
@@ -94,13 +92,13 @@ int GetTok(std::string& Code, int *Idx)
             NumStr += LastChar;
 
             if (IsInteractive) LastChar = getchar();
-            else LastChar = Code[(*Idx)++];
+            else LastChar = Code[Idx++];
         } while (isdigit(LastChar) || LastChar == '.');
 
         NumVal = strtod(NumStr.c_str(), nullptr);
 
-        if (trunc(NumVal) == NumVal) NumValType = Int;
-        else NumValType = Dbl;
+        if (trunc(NumVal) == NumVal) NumType = dataType::t_int;
+        else NumType = dataType::t_double;
 
         return tok_number;
     }
@@ -110,7 +108,7 @@ int GetTok(std::string& Code, int *Idx)
         // Comment until end of line.
         do {
             if (IsInteractive) LastChar = getchar();
-            else LastChar = Code[(*Idx)++];
+            else LastChar = Code[Idx++];
         } while (LastChar != EOF && LastChar != '\n' && LastChar != '\r');
 
         if (LastChar != EOF)
@@ -120,13 +118,13 @@ int GetTok(std::string& Code, int *Idx)
     if (LastChar == '{')
     {
         if (IsInteractive) LastChar = getchar();
-        else LastChar = Code[(*Idx)++];
+        else LastChar = Code[Idx++];
         return tok_openblock;
     }
     if (LastChar == '}')
     {
         if (IsInteractive) LastChar = getchar();
-        else LastChar = Code[(*Idx)++];
+        else LastChar = Code[Idx++];
         return tok_closeblock;
     }
 
@@ -137,25 +135,25 @@ int GetTok(std::string& Code, int *Idx)
     // Otherwise, just return the character as its ascii value.
     int ThisChar = LastChar;
     if (IsInteractive) LastChar = getchar();
-    else LastChar = Code[(*Idx)++];
+    else LastChar = Code[Idx++];
     return ThisChar;
 }
 
-std::string GetPath(std::string& Code, int* Idx)
+std::string GetPath(std::string& Code, int& Idx)
 {
     std::string PathStr;
     // Skip any whitespace.
     while (isspace(LastChar))
     {
         if (IsInteractive) LastChar = getchar();
-        else LastChar = Code[(*Idx)++];
+        else LastChar = Code[Idx++];
     }
 
     PathStr = LastChar;
     while (true)
     {
         if (IsInteractive) LastChar = getchar();
-        else LastChar = Code[(*Idx)++];
+        else LastChar = Code[Idx++];
 
         if (LastChar != '\n' && LastChar != ';' && LastChar != EOF) PathStr += LastChar;
         else break;

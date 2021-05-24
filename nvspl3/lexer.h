@@ -52,16 +52,15 @@ enum Token
     cmd_help = -201,
 };
 
-extern std::string IdentifierStr;
+extern std::string IdStr;
 extern std::string PathStr;
 extern std::string MainCode;
 
-extern type NumValType;
+extern dataType NumType;
 extern double NumVal;
 
-extern int CurTok;
 extern int LastChar;
 
-int GetTok(std::string& Code, int* Idx);
+int GetTok(std::string& Code, int& Idx);
 
-std::string GetPath(std::string& Code, int* Idx);
+std::string GetPath(std::string& Code, int& Idx);

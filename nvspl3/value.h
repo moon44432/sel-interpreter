@@ -4,62 +4,56 @@
 
 #pragma once
 
-typedef enum
+typedef enum class DataType
 {
-    _INT = 1,
-    _DOUBLE = 2,
+    t_int = 1,
+    t_double = 2,
 } dataType;
 
-typedef enum
+typedef enum class ValueType
 {
-    _DATA = 0,
-    _RETURN = 1,
-    _BREAK = 2,
-    _ERR = 3,
+    val_data = 0,
+    val_return = 1,
+    val_break = 2,
+    val_err = 3,
 } valueType;
-
-typedef struct
-{
-    valueType vType;
-    dataType dType;
-} type;
 
 typedef union
 {
-    char ch;
     int i;
     double dbl;
 } valueData;
 
-extern type Err;
-extern type Int;
-extern type Dbl;
-
 class Value
 {
-    type Type = Int;
+    valueType vType = valueType::val_data;
+    dataType dType = dataType::t_int;
     valueData Data;
 public:
     Value() {}
-    Value(type Ty) : Type(Ty) {}
-    Value(type Ty, valueData Val) : Type(Ty), Data(Val) {}
-    Value(double dVal) { Type = Dbl; Data.dbl = dVal; }
-    Value(int iVal) { Type = Int; Data.i = iVal; }
+    Value(valueType vType) : vType(vType) {}
+    Value(dataType dType) : dType(dType) {}
+    Value(valueType vType, dataType dType, valueData Val)
+        : vType(vType), dType(dType), Data(Val) {}
+    Value(dataType dType, valueData Val)
+        : dType(dType), Data(Val) {}
+    Value(double dVal) { dType = dataType::t_double; Data.dbl = dVal; }
+    Value(int iVal) { dType = dataType::t_int; Data.i = iVal; }
 
-    void setType(type Ty) { Type = Ty; }
-    void setValueType(valueType VTy) { Type.vType = VTy; }
+    void setvType(valueType vTy) { vType = vTy; }
+    void setdType(dataType dTy) { dType = dTy; }
     void updateVal(valueData Val) { Data = Val; }
-    void cast(dataType DestTy);
 
-    bool isErr() { return Type.vType == valueType::_ERR; }
-    bool isInt() { return Type.dType == dataType::_INT; }
+    bool isErr() { return vType == valueType::val_err; }
+    bool isInt() { return dType == dataType::t_int; }
     bool isUInt() { return isInt() && Data.i >= 0; }
 
-    type getType() { return Type; }
+    valueType getvType() { return vType; }
+    dataType getdType() { return dType; }
     valueData getVal() { return Data; }
 
-    int getiVal() { if (Type.dType == dataType::_DOUBLE) return (int)Data.dbl;
-                    else if (Type.dType == dataType::_INT) return Data.i; }
-    double getdVal() { if (Type.dType == dataType::_DOUBLE) return Data.dbl;
-                       else if (Type.dType == dataType::_INT) return (double)Data.i; }
+    int getiVal() { if (dType == dataType::t_double) return (int)Data.dbl;
+                    else if (dType == dataType::t_int) return Data.i; }
+    double getdVal() { if (dType == dataType::t_double) return Data.dbl;
+                       else if (dType == dataType::t_int) return (double)Data.i; }
 };

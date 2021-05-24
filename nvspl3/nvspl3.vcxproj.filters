@@ -27,7 +27,7 @@
     <ClCompile Include="execute.cpp">
       <Filter>소스 파일</Filter>
     </ClCompile>
-    <ClCompile Include="stdlibrary.cpp">
+    <ClCompile Include="stdfunc.cpp">
       <Filter>소스 파일</Filter>
     </ClCompile>
     <ClCompile Include="interactiveMode.cpp">
@@ -47,7 +47,7 @@
     <ClInclude Include="execute.h">
       <Filter>헤더 파일</Filter>
     </ClInclude>
-    <ClInclude Include="stdlibrary.h">
+    <ClInclude Include="stdfunc.h">
       <Filter>헤더 파일</Filter>
     </ClInclude>
     <ClInclude Include="interactiveMode.h">

@@ -4,38 +4,33 @@
 
 #pragma once
 
-#include <algorithm>
-#include <cassert>
-#include <cctype>
-#include <cstdint>
-#include <cstdio>
-#include <cstdlib>
-#include <map>
-#include <memory>
-#include <string>
-#include <utility>
-#include <vector>
 #include "value.h"
+#include <string>
+#include <vector>
+#include <memory>
+#include <cassert>
 
-typedef enum
+typedef enum class NodeType
 {
-    _DEFAULT = 0,
-    _VAR = 1,
-    _DEREF = 2,
+    node_default = 0,
+    node_var = 1,
+    node_deref = 2,
 } nodeType;
 
 /// ExprAST - Base class for all expression nodes.
-class ExprAST {
-    int NodeType = nodeType::_DEFAULT;
+class ExprAST
+{
+    nodeType NodeType = nodeType::node_default;
 public:
-    int getNodeType() { return NodeType; }
-    void setNodeType(int Type) { NodeType = Type; }
+    nodeType getNodeType() { return NodeType; }
+    void setNodeType(nodeType Type) { NodeType = Type; }
     virtual ~ExprAST() = default;
     virtual Value execute() = 0;
 };
 
 /// NumberExprAST - Expression class for numeric literals like "1.0".
-class NumberExprAST : public ExprAST {
+class NumberExprAST : public ExprAST
+{
     Value Val;
 
 public:
@@ -44,47 +39,51 @@ public:
 };
 
 /// VariableExprAST - Expression class for referencing a variable or an array element, like "i" or "ar[2][3]".
-class VariableExprAST : public ExprAST {
+class VariableExprAST : public ExprAST
+{
     std::string Name;
     std::vector<std::shared_ptr<ExprAST>> Indices;
 
 public:
-    VariableExprAST(const std::string& Name, std::vector<std::shared_ptr<ExprAST>>& Indices)
-        : Name(Name), Indices(Indices) {
-        setNodeType(nodeType::_VAR);
+    VariableExprAST(std::string Name, std::vector<std::shared_ptr<ExprAST>> Indices)
+        : Name(Name), Indices(std::move(Indices)) {
+        setNodeType(nodeType::node_var);
     }
-    VariableExprAST(const std::string& Name) : Name(Name) {
-        setNodeType(nodeType::_VAR);
+    VariableExprAST(std::string Name) : Name(Name) {
+        setNodeType(nodeType::node_var);
     }
-    const std::string& getName() const { return Name; }
+    const std::string getName() const { return Name; }
     const std::vector<std::shared_ptr<ExprAST>>& getIndices() const { return Indices; }
     Value execute() override;
 };
 
 /// DeRefExprAST - Expression class for dereferencing a memory address, like "@a" or "@(ptr + 10)".
-class DeRefExprAST : public ExprAST {
+class DeRefExprAST : public ExprAST
+{
     std::shared_ptr<ExprAST> AddrExpr;
 
 public:
     DeRefExprAST(std::shared_ptr<ExprAST> Addr) : AddrExpr(std::move(Addr)) {
-        setNodeType(nodeType::_DEREF);
+        setNodeType(nodeType::node_deref);
     }
-    const std::shared_ptr<ExprAST> const getExpr() { return AddrExpr; }
+    std::shared_ptr<ExprAST> getExpr() const { return AddrExpr; }
     Value execute() override;
 };
 
 /// ArrDeclExprAST - Expression class for declaring an array, like "arr ar[2][2][2]".
-class ArrDeclExprAST : public ExprAST {
+class ArrDeclExprAST : public ExprAST
+{
     std::string Name;
     std::vector<int> Indices;
 
 public:
-    ArrDeclExprAST(const std::string& Name, std::vector<int>& Indices) : Name(Name), Indices(Indices) {}
+    ArrDeclExprAST(std::string Name, std::vector<int> Indices) : Name(Name), Indices(std::move(Indices)) {}
     Value execute() override;
 };
 
 /// UnaryExprAST - Expression class for a unary operator.
-class UnaryExprAST : public ExprAST {
+class UnaryExprAST : public ExprAST
+{
     char Opcode;
     std::shared_ptr<ExprAST> Operand;
 
@@ -95,44 +94,52 @@ public:
 };
 
 /// BinaryExprAST - Expression class for a binary operator.
-class BinaryExprAST : public ExprAST {
+class BinaryExprAST : public ExprAST
+{
     std::string Op;
     std::shared_ptr<ExprAST> LHS, RHS;
 
 public:
-    BinaryExprAST(const std::string& Op, std::shared_ptr<ExprAST> LHS,
+    BinaryExprAST(std::string Op, std::shared_ptr<ExprAST> LHS,
         std::shared_ptr<ExprAST> RHS)
         : Op(Op), LHS(std::move(LHS)), RHS(std::move(RHS)) {}
     Value execute() override;
 };
 
 /// CallExprAST - Expression class for function calls.
-class CallExprAST : public ExprAST {
+class CallExprAST : public ExprAST
+{
     std::string Callee;
     std::vector<std::shared_ptr<ExprAST>> Args;
 
 public:
-    CallExprAST(const std::string& Callee,
+    CallExprAST(std::string Callee,
         std::vector<std::shared_ptr<ExprAST>> Args)
         : Callee(Callee), Args(std::move(Args)) {}
     Value execute() override;
 };
 
 /// IfExprAST - Expression class for if/then/else.
-class IfExprAST : public ExprAST {
+class IfExprAST : public ExprAST
+{
     std::shared_ptr<ExprAST> Cond, Then, Else;
 
 public:
+    IfExprAST(std::shared_ptr<ExprAST> Cond, std::shared_ptr<ExprAST> Then)
+        : Cond(std::move(Cond)), Then(std::move(Then)) {
+        Else = nullptr;
+    }
     IfExprAST(std::shared_ptr<ExprAST> Cond, std::shared_ptr<ExprAST> Then,
         std::shared_ptr<ExprAST> Else)
-        : Cond(std::move(Cond)), Then(std::move(Then)), Else(std::move(Else)) {}
-    IfExprAST(std::shared_ptr<ExprAST> Cond, std::shared_ptr<ExprAST> Then)
-        : Cond(std::move(Cond)), Then(std::move(Then)) { Else = nullptr; }
+        : IfExprAST(std::move(Cond), std::move(Then)) {
+        this->Else = std::move(Else);
+    }
     Value execute() override;
 };
 
 /// ForExprAST - Expression class for for.
-class ForExprAST : public ExprAST {
+class ForExprAST : public ExprAST
+{
     std::string VarName;
     std::shared_ptr<ExprAST> Start, End, Step, Body;
 
@@ -146,7 +153,8 @@ public:
 };
 
 /// WhileExprAST - Expression class for while.
-class WhileExprAST : public ExprAST {
+class WhileExprAST : public ExprAST
+{
     std::shared_ptr<ExprAST> Cond, Body;
 
 public:
@@ -156,7 +164,8 @@ public:
 };
 
 /// RepeatExprAST - Expression class for rept.
-class RepeatExprAST : public ExprAST {
+class RepeatExprAST : public ExprAST
+{
     std::shared_ptr<ExprAST> IterNum;
     std::shared_ptr<ExprAST> Body;
 
@@ -167,7 +176,8 @@ public:
 };
 
 /// LoopExprAST - Expression class for loop.
-class LoopExprAST : public ExprAST {
+class LoopExprAST : public ExprAST
+{
     std::shared_ptr<ExprAST> Body;
 
 public:
@@ -176,7 +186,8 @@ public:
 };
 
 /// BlockExprAST - Sequence of expressions.
-class BlockExprAST : public ExprAST {
+class BlockExprAST : public ExprAST
+{
     std::vector<std::shared_ptr<ExprAST>> Expressions;
 
 public:
@@ -186,7 +197,8 @@ public:
 };
 
 /// BreakExprAST - Expression class for break.
-class BreakExprAST : public ExprAST {
+class BreakExprAST : public ExprAST
+{
     std::shared_ptr<ExprAST> Expr;
 
 public:
@@ -195,7 +207,8 @@ public:
 };
 
 /// ReturnExprAST - Expression class for return.
-class ReturnExprAST : public ExprAST {
+class ReturnExprAST : public ExprAST
+{
     std::shared_ptr<ExprAST> Expr;
 
 public:
@@ -206,19 +219,21 @@ public:
 /// PrototypeAST - This class represents the "prototype" for a function,
 /// which captures its name, and its argument names (thus implicitly the number
 /// of arguments the function takes), as well as if it is an operator.
-class PrototypeAST {
+class PrototypeAST
+{
     std::string Name;
     std::vector<std::string> Args;
     bool IsOperator;
     unsigned int Precedence; // Precedence if a binary op.
 
 public:
-    PrototypeAST(const std::string& Name, const std::vector<std::string>& Args,
+    PrototypeAST(std::string Name, std::vector<std::string> Args,
         bool IsOperator = false, unsigned int Prec = 0)
-        : Name(Name), Args(Args), IsOperator(IsOperator),
+        : Name(Name), Args(std::move(Args)), IsOperator(IsOperator),
         Precedence(Prec) {}
 
-    const std::string& getName() const { return Name; }
+    const std::string getName() const { return Name; }
+    const std::vector<std::string>& getArgs() const { return Args; }
 
     bool isUnaryOp() const { return IsOperator && Args.size() == 1; }
     bool isBinaryOp() const { return IsOperator && Args.size() == 2; }
@@ -231,12 +246,12 @@ public:
     }
 
     unsigned int getBinaryPrecedence() const { return Precedence; }
-    const int getArgsSize() const { return Args.size(); }
-    const std::vector<std::string>& getArgs() const { return Args; }
+    int getArgsSize() const { return Args.size(); }
 };
 
 /// FunctionAST - This class represents a function definition itself.
-class FunctionAST {
+class FunctionAST
+{
     std::shared_ptr<PrototypeAST> Proto;
     std::shared_ptr<ExprAST> Body;
 
@@ -245,23 +260,24 @@ public:
         std::shared_ptr<ExprAST> Body)
         : Proto(std::move(Proto)), Body(std::move(Body)) {}
     Value execute(std::vector<Value> Ops);
-    int argsSize() const { return Proto->getArgsSize(); }
     const std::string getFuncName() const { return Proto->getName(); }
-    const std::vector<std::string> getFuncArgs() const { return Proto->getArgs(); }
+    const std::vector<std::string>& getFuncArgs() const { return Proto->getArgs(); }
+    int argsSize() const { return Proto->getArgsSize(); }
 };
 
 /// ImportAST - This class represents a module import.
-class ImportAST {
+class ImportAST
+{
     std::string ModuleName;
 
 public:
-    ImportAST(const std::string& Name) : ModuleName(Name) {}
+    ImportAST(std::string Name) : ModuleName(Name) {}
     const std::string getModuleName() const { return ModuleName; }
 };
 
 void InitBinopPrec();
 
-int GetNextToken(std::string& Code, int* Idx);
+int GetNextToken(std::string& Code, int& Idx);
 
 int GetTokPrecedence(std::string Op);
 
@@ -269,44 +285,44 @@ std::shared_ptr<ExprAST> LogError(const char* Str);
 
 std::shared_ptr<PrototypeAST> LogErrorP(const char* Str);
 
-std::shared_ptr<ExprAST> ParseNumberExpr(std::string& Code, int* Idx);
+std::shared_ptr<ExprAST> ParseNumberExpr(std::string& Code, int& Idx);
 
-std::shared_ptr<ExprAST> ParseParenExpr(std::string& Code, int* Idx);
+std::shared_ptr<ExprAST> ParseParenExpr(std::string& Code, int& Idx);
 
-std::shared_ptr<ExprAST> ParseIdentifierExpr(std::string& Code, int* Idx);
+std::shared_ptr<ExprAST> ParseIdentifierExpr(std::string& Code, int& Idx);
 
-std::shared_ptr<ExprAST> ParseDeRefExpr(std::string& Code, int* Idx);
+std::shared_ptr<ExprAST> ParseDeRefExpr(std::string& Code, int& Idx);
 
-std::shared_ptr<ExprAST> ParseArrDeclExpr(std::string& Code, int* Idx);
+std::shared_ptr<ExprAST> ParseArrDeclExpr(std::string& Code, int& Idx);
 
-std::shared_ptr<ExprAST> ParseIfExpr(std::string& Code, int* Idx);
+std::shared_ptr<ExprAST> ParseIfExpr(std::string& Code, int& Idx);
 
-std::shared_ptr<ExprAST> ParseForExpr(std::string& Code, int* Idx);
+std::shared_ptr<ExprAST> ParseForExpr(std::string& Code, int& Idx);
 
-std::shared_ptr<ExprAST> ParseWhileExpr(std::string& Code, int* Idx);
+std::shared_ptr<ExprAST> ParseWhileExpr(std::string& Code, int& Idx);
 
-std::shared_ptr<ExprAST> ParseRepeatExpr(std::string& Code, int* Idx);
+std::shared_ptr<ExprAST> ParseRepeatExpr(std::string& Code, int& Idx);
 
-std::shared_ptr<ExprAST> ParseLoopExpr(std::string& Code, int* Idx);
+std::shared_ptr<ExprAST> ParseLoopExpr(std::string& Code, int& Idx);
 
-std::shared_ptr<ExprAST> ParseBreakExpr(std::string& Code, int* Idx);
+std::shared_ptr<ExprAST> ParseBreakExpr(std::string& Code, int& Idx);
 
-std::shared_ptr<ExprAST> ParseReturnExpr(std::string& Code, int* Idx);
+std::shared_ptr<ExprAST> ParseReturnExpr(std::string& Code, int& Idx);
 
-std::shared_ptr<ExprAST> ParsePrimary(std::string& Code, int* Idx);
+std::shared_ptr<ExprAST> ParsePrimary(std::string& Code, int& Idx);
 
-std::shared_ptr<ExprAST> ParseUnary(std::string& Code, int* Idx);
+std::shared_ptr<ExprAST> ParseUnary(std::string& Code, int& Idx);
 
-std::shared_ptr<ExprAST> ParseBinOpRHS(std::string& Code, int* Idx, int ExprPrec, std::shared_ptr<ExprAST> LHS);
+std::shared_ptr<ExprAST> ParseBinOpRHS(std::string& Code, int& Idx, int ExprPrec, std::shared_ptr<ExprAST> LHS);
 
-std::shared_ptr<ExprAST> ParseExpression(std::string& Code, int* Idx);
+std::shared_ptr<ExprAST> ParseExpression(std::string& Code, int& Idx);
 
-std::shared_ptr<ExprAST> ParseBlockExpression(std::string& Code, int* Idx);
+std::shared_ptr<ExprAST> ParseBlockExpression(std::string& Code, int& Idx);
 
-std::shared_ptr<PrototypeAST> ParsePrototype(std::string& Code, int* Idx);
+std::shared_ptr<PrototypeAST> ParsePrototype(std::string& Code, int& Idx);
 
-std::shared_ptr<FunctionAST> ParseDefinition(std::string& Code, int* Idx);
+std::shared_ptr<FunctionAST> ParseDefinition(std::string& Code, int& Idx);
 
-std::shared_ptr<FunctionAST> ParseTopLevelExpr(std::string& Code, int* Idx);
+std::shared_ptr<FunctionAST> ParseTopLevelExpr(std::string& Code, int& Idx);
 
-std::shared_ptr<ImportAST> ParseImport(std::string& Code, int* Idx);
+std::shared_ptr<ImportAST> ParseImport(std::string& Code, int& Idx);

@@ -2,14 +2,14 @@
 // SEL Project
 // execute.cpp
 
-#include "lexer.h"
 #include "value.h"
+#include "lexer.h"
 #include "ast.h"
 #include "execute.h"
-#include "stdlibrary.h"
+#include "stdfunc.h"
 #include "interactiveMode.h"
+#include <map>
 #include <cmath>
-#include <iostream>
 
 #ifdef _WIN32
 #include <Windows.h>
@@ -19,19 +19,17 @@ static std::map<std::string, std::shared_ptr<FunctionAST>> Functions;
 static std::vector<namedValue> SymTbl;
 static Memory StackMemory;
 
-typedef enum class ArrAction
-{
-    _GETVAL,
-    _GETADDR,
-    _SETVAL,
-} arrAction;
+extern int CurTok;
+
+int MainIdx = 0;
+std::string MainCode;
 
 bool IsInteractive = true; // true for default
 
 Value LogErrorV(const char* Str)
 {
     LogError(Str);
-    return Value(Err);
+    return Value(valueType::val_err);
 }
 
 Value NumberExprAST::execute()
@@ -43,7 +41,7 @@ Value DeRefExprAST::execute()
 {
     Value Address = AddrExpr->execute();
     if (Address.isErr())
-        return Value(Err);
+        return Value(valueType::val_err);
     if (Address.isUInt()) // address should be an uint
         return StackMemory.getValue(Address.getVal().i);
 
@@ -63,22 +61,22 @@ Value HandleArr(std::string ArrName, const std::vector<std::shared_ptr<ExprAST>>
                 if (!IdxV.back().isInt()) return LogErrorV("Index must be an integer");
             }
 
-            if (IdxV.size() != SymTbl[i].Dim.size()) return LogErrorV("Dimension mismatch");
+            if (IdxV.size() != SymTbl[i].DimInfo.size()) return LogErrorV("Dimension mismatch");
 
             int AddVal = 0;
             for (int l = 0; l < IdxV.size(); l++)
             {
                 int MulVal = 1;
-                for (int m = l + 1; m < IdxV.size(); m++) MulVal *= SymTbl[i].Dim[m];
+                for (int m = l + 1; m < IdxV.size(); m++) MulVal *= SymTbl[i].DimInfo[m];
                 AddVal += MulVal * IdxV[l].getVal().i;
             }
             switch (Action)
             {
-            case arrAction::_GETVAL:
+            case arrAction::getVal:
                 return StackMemory.getValue(SymTbl[i].Addr + AddVal);
-            case arrAction::_GETADDR:
+            case arrAction::getAddr:
                 return Value((int)(SymTbl[i].Addr + AddVal));
-            case arrAction::_SETVAL:
+            case arrAction::setVal:
                 StackMemory.setValue(SymTbl[i].Addr + AddVal, Val);
                 return Val;
             }
@@ -92,7 +90,7 @@ Value HandleArr(std::string ArrName, const std::vector<std::shared_ptr<ExprAST>>
 Value VariableExprAST::execute()
 {
     if (!Indices.empty()) // array element
-        return HandleArr(Name, Indices, arrAction::_GETVAL);
+        return HandleArr(Name, Indices, arrAction::getVal);
 
     // normal variable
     for (int i = SymTbl.size() - 1; i >= 0; i--)
@@ -125,7 +123,7 @@ Value UnaryExprAST::execute()
         const std::vector<std::shared_ptr<ExprAST>>& Indices = Op->getIndices();
         if (!Indices.empty()) // array element
         {
-            return HandleArr(Op->getName(), Indices, arrAction::_GETADDR);
+            return HandleArr(Op->getName(), Indices, arrAction::getAddr);
         }
         else // normal variable
         {
@@ -142,21 +140,21 @@ Value UnaryExprAST::execute()
 
     Value OperandV = Operand->execute();
     if (OperandV.isErr())
-        return Value(Err);
+        return Value(valueType::val_err);
 
     switch (Opcode)
     {
     case '!':
-        if (OperandV.getType().dType == dataType::_DOUBLE) return Value(!(bool)(OperandV.getVal().dbl));
-        else if (OperandV.getType().dType == dataType::_INT) return Value(!(bool)(OperandV.getVal().i));
+        if (OperandV.getdType() == dataType::t_double) return Value(!(bool)(OperandV.getVal().dbl));
+        else if (OperandV.getdType() == dataType::t_int) return Value(!(bool)(OperandV.getVal().i));
         break;
     case '+':
-        if (OperandV.getType().dType == dataType::_DOUBLE) return Value(+(OperandV.getVal().dbl));
-        else if (OperandV.getType().dType == dataType::_INT) return Value(+(OperandV.getVal().i));
+        if (OperandV.getdType() == dataType::t_double) return Value(+(OperandV.getVal().dbl));
+        else if (OperandV.getdType() == dataType::t_int) return Value(+(OperandV.getVal().i));
         break;
     case '-':
-        if (OperandV.getType().dType == dataType::_DOUBLE) return Value(-(OperandV.getVal().dbl));
-        else if (OperandV.getType().dType == dataType::_INT) return Value(-(OperandV.getVal().i));
+        if (OperandV.getdType() == dataType::t_double) return Value(-(OperandV.getVal().dbl));
+        else if (OperandV.getdType() == dataType::t_int) return Value(-(OperandV.getVal().i));
         break;
     }
 
@@ -177,13 +175,13 @@ Value BinaryExprAST::execute() {
         Value Val = RHS->execute();
 
         if (Val.isErr())
-            return Value(Err);
+            return Value(valueType::val_err);
 
         // Assignment requires the LHS to be an identifier.
         VariableExprAST* LHSE;
 
-        if (LHS->getNodeType() == nodeType::_VAR) LHSE = static_cast<VariableExprAST*>(LHS.get());
-        else if (LHS->getNodeType() == nodeType::_DEREF)
+        if (LHS->getNodeType() == nodeType::node_var) LHSE = static_cast<VariableExprAST*>(LHS.get());
+        else if (LHS->getNodeType() == nodeType::node_deref)
         {
             DeRefExprAST* LHSE = static_cast<DeRefExprAST*>(LHS.get());
             
@@ -200,7 +198,7 @@ Value BinaryExprAST::execute() {
         std::vector<std::shared_ptr<ExprAST>> Indices = LHSE->getIndices();
         if (!Indices.empty()) // array element
         {
-            return HandleArr(LHSE->getName(), Indices, arrAction::_SETVAL, Val);
+            return HandleArr(LHSE->getName(), Indices, arrAction::setVal, Val);
         }
         else // normal variable
         {
@@ -227,92 +225,92 @@ Value BinaryExprAST::execute() {
     Value R = RHS->execute();
 
     if (L.isErr() || R.isErr())
-        return Value(Err);
+        return Value(valueType::val_err);
 
-    dataType ResultType = (L.getType().dType >= R.getType().dType) ? L.getType().dType : R.getType().dType;
+    dataType ResultType = (L.getdType() >= R.getdType()) ? L.getdType() : R.getdType();
 
     if (Op == "==")
     {
-        if (ResultType == dataType::_DOUBLE) return Value((L.getdVal() == R.getdVal()));
-        else if (ResultType == dataType::_INT) return Value((L.getiVal() == R.getiVal()));
+        if (ResultType == dataType::t_double) return Value((L.getdVal() == R.getdVal()));
+        else if (ResultType == dataType::t_int) return Value((L.getiVal() == R.getiVal()));
     }
 
     if (Op == "!=")
     {
-        if (ResultType == dataType::_DOUBLE) return Value((L.getdVal() != R.getdVal()));
-        else if (ResultType == dataType::_INT) return Value((L.getiVal() != R.getiVal()));
+        if (ResultType == dataType::t_double) return Value((L.getdVal() != R.getdVal()));
+        else if (ResultType == dataType::t_int) return Value((L.getiVal() != R.getiVal()));
     }
 
     if (Op == "&&")
     {
-        if (ResultType == dataType::_DOUBLE) return Value((L.getdVal() && R.getdVal()));
-        else if (ResultType == dataType::_INT) return Value((L.getiVal() && R.getiVal()));
+        if (ResultType == dataType::t_double) return Value((L.getdVal() && R.getdVal()));
+        else if (ResultType == dataType::t_int) return Value((L.getiVal() && R.getiVal()));
     }
 
     if (Op == "||")
     {
-        if (ResultType == dataType::_DOUBLE) return Value((L.getdVal() || R.getdVal()));
-        else if (ResultType == dataType::_INT) return Value((L.getiVal() || R.getiVal()));
+        if (ResultType == dataType::t_double) return Value((L.getdVal() || R.getdVal()));
+        else if (ResultType == dataType::t_int) return Value((L.getiVal() || R.getiVal()));
     }
 
     if (Op == "<")
     {
-        if (ResultType == dataType::_DOUBLE) return Value((L.getdVal() < R.getdVal()));
-        else if (ResultType == dataType::_INT) return Value((L.getiVal() < R.getiVal()));
+        if (ResultType == dataType::t_double) return Value((L.getdVal() < R.getdVal()));
+        else if (ResultType == dataType::t_int) return Value((L.getiVal() < R.getiVal()));
     }
 
     if (Op == ">")
     {
-        if (ResultType == dataType::_DOUBLE) return Value((L.getdVal() > R.getdVal()));
-        else if (ResultType == dataType::_INT) return Value((L.getiVal() > R.getiVal()));
+        if (ResultType == dataType::t_double) return Value((L.getdVal() > R.getdVal()));
+        else if (ResultType == dataType::t_int) return Value((L.getiVal() > R.getiVal()));
     }
 
     if (Op == "<=") 
     {
-        if (ResultType == dataType::_DOUBLE) return Value((L.getdVal() <= R.getdVal()));
-        else if (ResultType == dataType::_INT) return Value((L.getiVal() <= R.getiVal()));
+        if (ResultType == dataType::t_double) return Value((L.getdVal() <= R.getdVal()));
+        else if (ResultType == dataType::t_int) return Value((L.getiVal() <= R.getiVal()));
     }
 
     if (Op == ">=")
     {
-        if (ResultType == dataType::_DOUBLE) return Value((L.getdVal() >= R.getdVal()));
-        else if (ResultType == dataType::_INT) return Value((L.getiVal() >= R.getiVal()));
+        if (ResultType == dataType::t_double) return Value((L.getdVal() >= R.getdVal()));
+        else if (ResultType == dataType::t_int) return Value((L.getiVal() >= R.getiVal()));
     }
 
     if (Op == "+")
     {
-        if (ResultType == dataType::_DOUBLE) return Value((double)(L.getdVal() + R.getdVal()));
-        else if (ResultType == dataType::_INT) return Value((int)(L.getiVal() + R.getiVal()));
+        if (ResultType == dataType::t_double) return Value((double)(L.getdVal() + R.getdVal()));
+        else if (ResultType == dataType::t_int) return Value((int)(L.getiVal() + R.getiVal()));
     }
 
     if (Op == "-") 
     {
-        if (ResultType == dataType::_DOUBLE) return Value((double)(L.getdVal() - R.getdVal()));
-        else if (ResultType == dataType::_INT) return Value((int)(L.getiVal() - R.getiVal()));
+        if (ResultType == dataType::t_double) return Value((double)(L.getdVal() - R.getdVal()));
+        else if (ResultType == dataType::t_int) return Value((int)(L.getiVal() - R.getiVal()));
     }
 
     if (Op == "*")
     {
-        if (ResultType == dataType::_DOUBLE) return Value((double)(L.getdVal() * R.getdVal()));
-        else if (ResultType == dataType::_INT) return Value((int)(L.getiVal() * R.getiVal()));
+        if (ResultType == dataType::t_double) return Value((double)(L.getdVal() * R.getdVal()));
+        else if (ResultType == dataType::t_int) return Value((int)(L.getiVal() * R.getiVal()));
     }
 
     if (Op == "/")
     {
-        if (ResultType == dataType::_DOUBLE) return Value((double)(L.getdVal() / R.getdVal()));
-        else if (ResultType == dataType::_INT) return Value((int)(L.getiVal() / R.getiVal()));
+        if (ResultType == dataType::t_double) return Value((double)(L.getdVal() / R.getdVal()));
+        else if (ResultType == dataType::t_int) return Value((int)(L.getiVal() / R.getiVal()));
     }
 
     if (Op == "%")
     {
-        if (ResultType == dataType::_DOUBLE) return Value((double)fmod(L.getdVal(), R.getdVal()));
-        else if (ResultType == dataType::_INT) return Value((int)(L.getiVal() % R.getiVal()));
+        if (ResultType == dataType::t_double) return Value((double)fmod(L.getdVal(), R.getdVal()));
+        else if (ResultType == dataType::t_int) return Value((int)(L.getiVal() % R.getiVal()));
     }
 
     if (Op == "**")
     {
-        if (ResultType == dataType::_DOUBLE) return Value((double)pow(L.getdVal(), R.getdVal()));
-        else if (ResultType == dataType::_INT) return Value((int)pow(L.getiVal(), R.getiVal()));
+        if (ResultType == dataType::t_double) return Value((double)pow(L.getdVal(), R.getdVal()));
+        else if (ResultType == dataType::t_int) return Value((int)pow(L.getiVal(), R.getiVal()));
     }
 
     // If it wasn't a builtin binary operator, it must be a user defined one. Emit
@@ -334,7 +332,7 @@ Value CallExprAST::execute()
     for (int i = 0, e = Args.size(); i != e; ++i) {
         ArgsV.push_back(Args[i]->execute());
         if (ArgsV.back().isErr())
-            return Value(Err);
+            return Value(valueType::val_err);
     }
 
     if (std::find(StdFuncList.begin(), StdFuncList.end(), Callee) != StdFuncList.end())
@@ -356,7 +354,7 @@ Value IfExprAST::execute()
 {
     Value CondV = Cond->execute();
     if (CondV.isErr())
-        return Value(Err);
+        return Value(valueType::val_err);
 
     if (CondV.getdVal())
     {
@@ -367,7 +365,7 @@ Value IfExprAST::execute()
         for (int i = SymTbl.size(); i > TblIdx; i--) SymTbl.pop_back();
 
         if (ThenV.isErr())
-            return Value(Err);
+            return Value(valueType::val_err);
         return ThenV;
     }
     else if (Else != nullptr)
@@ -379,7 +377,7 @@ Value IfExprAST::execute()
         for (int i = SymTbl.size(); i > TblIdx; i--) SymTbl.pop_back();
 
         if (ElseV.isErr())
-            return Value(Err);
+            return Value(valueType::val_err);
         return ElseV;
     }
     return Value(0);
@@ -389,7 +387,7 @@ Value ForExprAST::execute()
 {
     Value StartVal = Start->execute();
     if (StartVal.isErr())
-        return Value(Err);
+        return Value(valueType::val_err);
 
     int StackIdx = StackMemory.getSize(), TblIdx = SymTbl.size();
     int StartVarAddr;
@@ -418,7 +416,7 @@ Value ForExprAST::execute()
     {
         StepVal = Step->execute();
         if (StepVal.isErr())
-            return Value(Err);
+            return Value(valueType::val_err);
     }
 
     Value BodyExpr, EndCond;
@@ -429,9 +427,9 @@ Value ForExprAST::execute()
 
         BodyExpr = Body->execute();
         if (BodyExpr.isErr()) break;
-        if (BodyExpr.getType().vType == valueType::_BREAK)
+        if (BodyExpr.getvType() == valueType::val_break)
         {
-            BodyExpr.setValueType(valueType::_DATA);
+            BodyExpr.setvType(valueType::val_data);
             break;
         }
         StackMemory.setValue(StartVarAddr,
@@ -442,7 +440,7 @@ Value ForExprAST::execute()
     for (int i = SymTbl.size(); i > TblIdx; i--) SymTbl.pop_back();
 
     if (BodyExpr.isErr() || EndCond.isErr())
-        return Value(Err);
+        return Value(valueType::val_err);
 
     return BodyExpr;
 }
@@ -459,9 +457,9 @@ Value WhileExprAST::execute()
 
         BodyExpr = Body->execute();
         if (BodyExpr.isErr()) break;
-        if (BodyExpr.getType().vType == valueType::_BREAK)
+        if (BodyExpr.getvType() == valueType::val_break)
         {
-            BodyExpr.setValueType(valueType::_DATA);
+            BodyExpr.setvType(valueType::val_data);
             break;
         }
     }
@@ -469,7 +467,7 @@ Value WhileExprAST::execute()
     for (int i = SymTbl.size(); i > TblIdx; i--) SymTbl.pop_back();
 
     if (EndCond.isErr() || BodyExpr.isErr())
-        return Value(Err);
+        return Value(valueType::val_err);
 
     return BodyExpr;
 }
@@ -478,7 +476,7 @@ Value RepeatExprAST::execute()
 {
     Value Iter = IterNum->execute();
     if (Iter.isErr())
-        return Value(Err);
+        return Value(valueType::val_err);
     if (!Iter.isUInt()) return LogErrorV("Number of iterations should be an unsigned integer");
 
     int StackIdx = StackMemory.getSize(), TblIdx = SymTbl.size();
@@ -489,9 +487,9 @@ Value RepeatExprAST::execute()
         BodyExpr = Body->execute();
         
         if (BodyExpr.isErr()) break;
-        if (BodyExpr.getType().vType == valueType::_BREAK)
+        if (BodyExpr.getvType() == valueType::val_break)
         {
-            BodyExpr.setValueType(valueType::_DATA);
+            BodyExpr.setvType(valueType::val_data);
             break;
         }
     }
@@ -499,7 +497,7 @@ Value RepeatExprAST::execute()
     for (int i = SymTbl.size(); i > TblIdx; i--) SymTbl.pop_back();
 
     if (BodyExpr.isErr())
-        return Value(Err);
+        return Value(valueType::val_err);
     
     return BodyExpr;
 }
@@ -514,9 +512,9 @@ Value LoopExprAST::execute()
         BodyExpr = Body->execute();
 
         if (BodyExpr.isErr()) break;
-        if (BodyExpr.getType().vType == valueType::_BREAK)
+        if (BodyExpr.getvType() == valueType::val_break)
         {
-            BodyExpr.setValueType(valueType::_DATA);
+            BodyExpr.setvType(valueType::val_data);
             break;
         }
     }
@@ -524,7 +522,7 @@ Value LoopExprAST::execute()
     for (int i = SymTbl.size(); i > TblIdx; i--) SymTbl.pop_back();
 
     if (BodyExpr.isErr())
-        return Value(Err);
+        return Value(valueType::val_err);
     
     return BodyExpr;
 }
@@ -535,7 +533,7 @@ Value BreakExprAST::execute()
     if (RetVal.isErr())
         return LogErrorV("Failed to return a value");
 
-    RetVal.setValueType(valueType::_BREAK);
+    RetVal.setvType(valueType::val_break);
     return RetVal;
 }
 
@@ -545,7 +543,7 @@ Value ReturnExprAST::execute()
     if (RetVal.isErr())
         return LogErrorV("Failed to return a value");
 
-    RetVal.setValueType(valueType::_RETURN);
+    RetVal.setvType(valueType::val_return);
     return RetVal;
 }
 
@@ -557,7 +555,8 @@ Value BlockExprAST::execute()
     for (auto& Expr : Expressions)
     {
         RetVal = Expr->execute();
-        if (RetVal.getType().vType == valueType::_BREAK || RetVal.getType().vType == valueType::_RETURN) break;
+        if (RetVal.getvType() == valueType::val_break || 
+            RetVal.getvType() == valueType::val_return) break;
     }
     StackMemory.deleteScope(StackIdx);
     for (int i = SymTbl.size(); i > TblIdx; i--) SymTbl.pop_back();
@@ -584,13 +583,14 @@ Value FunctionAST::execute(std::vector<Value> Ops)
         for (int i = SymTbl.size(); i > TblIdx; i--) SymTbl.pop_back();
     }
 
-    if (RetVal.isErr()) return Value(Err);
-    if (RetVal.getType().vType == valueType::_RETURN) RetVal.setValueType(valueType::_DATA);
+    if (RetVal.isErr()) return Value(valueType::val_err);
+    if (RetVal.getvType() == valueType::val_return)
+        RetVal.setvType(valueType::val_data);
     
     return RetVal;
 }
 
-void HandleDefinition(std::string& Code, int* Idx)
+void HandleDefinition(std::string& Code, int& Idx)
 {
     if (auto FnAST = ParseDefinition(Code, Idx))
     {
@@ -600,7 +600,7 @@ void HandleDefinition(std::string& Code, int* Idx)
     else GetNextToken(Code, Idx); // Skip token for error recovery.
 }
 
-void HandleTopLevelExpression(std::string& Code, int* Idx)
+void HandleTopLevelExpression(std::string& Code, int& Idx)
 {
     // Evaluate a top-level expression into an anonymous function.
     if (auto FnAST = ParseTopLevelExpr(Code, Idx))
@@ -608,14 +608,16 @@ void HandleTopLevelExpression(std::string& Code, int* Idx)
         Value RetVal = FnAST->execute(std::vector<Value>());
         if (!RetVal.isErr() && IsInteractive)
         {
-            if (RetVal.getType().dType == dataType::_DOUBLE) fprintf(stderr, "Evaluated to %f\n", RetVal.getdVal());
-            else if (RetVal.getType().dType == dataType::_INT) fprintf(stderr, "Evaluated to %d\n", RetVal.getiVal());
+            if (RetVal.getdType() == dataType::t_double)
+                fprintf(stderr, "Evaluated to %f\n", RetVal.getdVal());
+            else if (RetVal.getdType() == dataType::t_int)
+                fprintf(stderr, "Evaluated to %d\n", RetVal.getiVal());
         }
     }
     else GetNextToken(Code, Idx); // Skip token for error recovery.
 }
 
-void HandleImport(std::string& Code, int* Idx, int tmpCurTok, int tmpLastChar, bool tmpFlag)
+void HandleImport(std::string& Code, int& Idx, int tmpCurTok, int tmpLastChar, bool tmpFlag)
 {
     if (auto ImAST = ParseImport(Code, Idx))
     {
@@ -633,7 +635,7 @@ void HandleImport(std::string& Code, int* Idx, int tmpCurTok, int tmpLastChar, b
         ModuleCode += EOF;
         fclose(fp);
 
-        GetNextToken(ModuleCode, &moduleIdx);
+        GetNextToken(ModuleCode, moduleIdx);
 
         while (true)
         {
@@ -642,14 +644,14 @@ void HandleImport(std::string& Code, int* Idx, int tmpCurTok, int tmpLastChar, b
             switch (CurTok)
             {
             case tok_import:
-                HandleImport(ModuleCode, &moduleIdx, CurTok, LastChar, tmpFlag);
-                GetNextToken(ModuleCode, &moduleIdx);
+                HandleImport(ModuleCode, moduleIdx, CurTok, LastChar, tmpFlag);
+                GetNextToken(ModuleCode, moduleIdx);
                 break;
             case tok_def:
-                HandleDefinition(ModuleCode, &moduleIdx);
+                HandleDefinition(ModuleCode, moduleIdx);
                 break;
             default:
-                GetNextToken(ModuleCode, &moduleIdx);
+                GetNextToken(ModuleCode, moduleIdx);
                 break;
             }
         }
@@ -662,7 +664,7 @@ void HandleImport(std::string& Code, int* Idx, int tmpCurTok, int tmpLastChar, b
 }
 
 /// top ::= definition | import | external | expression | ';'
-void MainLoop(std::string& Code, int* Idx)
+void MainLoop(std::string& Code, int& Idx)
 {
     bool tmpFlag = false;
     while (true)
@@ -699,7 +701,7 @@ void MainLoop(std::string& Code, int* Idx)
     }
 }
 
-void Execute(const char* FileName)
+void ExecuteScript(const char* FileName)
 {
     IsInteractive = false;
 
@@ -718,8 +720,8 @@ void Execute(const char* FileName)
 #endif
 
     InitBinopPrec();
-    GetNextToken(MainCode, &MainIdx);
-    MainLoop(MainCode, &MainIdx);
+    GetNextToken(MainCode, MainIdx);
+    MainLoop(MainCode, MainIdx);
 
 #ifdef _WIN32
     DWORD diff = (GetTickCount64() - t);
