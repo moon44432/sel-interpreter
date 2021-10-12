@@ -6,7 +6,7 @@
 
 void RunInteractiveShell()
 {
-    std::string VerStr = "v1.2.1 ";
+    std::string VerStr = "v1.2.2 ";
     #ifdef _WIN32
     #ifdef _WIN64
     #ifdef _M_X64

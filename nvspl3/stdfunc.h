@@ -16,6 +16,8 @@ Value print(const std::vector<Value>& Args);
 
 Value println(const std::vector<Value>& Args);
 
+Value printch(const std::vector<Value>& Args);
+
 Value input(const std::vector<Value>& Args);
 
 Value inputch(const std::vector<Value>& Args);
