@@ -9,6 +9,7 @@
 
 enum Token
 {
+    tok_undef = 0,
     tok_eof = -1,
 
     // commands

@@ -16,6 +16,7 @@ typedef enum class ValueType
     val_return = 1,
     val_break = 2,
     val_err = 3,
+	val_undef = 4,
 } valueType;
 
 typedef union
@@ -37,6 +38,14 @@ public:
         : vType(vType), dType(dType), Data(Val) {}
     Value(dataType dType, valueData Val)
         : dType(dType), Data(Val) {}
+    Value(valueType vType, double dVal)
+		: vType(vType), dType(dataType::t_double) {
+		Data.dbl = dVal;
+	}
+    Value(valueType vType, int iVal)
+        : vType(vType), dType(dataType::t_int) {
+        Data.i = iVal;
+    }
     Value(double dVal) { dType = dataType::t_double; Data.dbl = dVal; }
     Value(int iVal) { dType = dataType::t_int; Data.i = iVal; }
 
@@ -45,6 +54,8 @@ public:
     void updateVal(valueData Val) { Data = Val; }
 
     bool isErr() { return vType == valueType::val_err; }
+	bool isBreak() { return vType == valueType::val_break; }
+	bool isReturn() { return vType == valueType::val_return; }
     bool isInt() { return dType == dataType::t_int; }
     bool isUInt() { return isInt() && Data.i >= 0; }
 

@@ -291,10 +291,10 @@ std::shared_ptr<ExprAST> ParseWhileExpr(std::string& Code, int& Idx)
     return std::make_shared<WhileExprAST>(std::move(Cond), std::move(Body));
 }
 
-/// reptexpr ::= 'rept' expr blockexpr
+/// repexpr ::= 'rep' expr blockexpr
 std::shared_ptr<ExprAST> ParseRepeatExpr(std::string& Code, int& Idx)
 {
-    GetNextToken(Code, Idx); // eat the rept.
+    GetNextToken(Code, Idx); // eat the rep.
 
     auto IterNum = ParseExpression(Code, Idx);
     if (!IterNum)
@@ -353,7 +353,7 @@ std::shared_ptr<ExprAST> ParseReturnExpr(std::string& Code, int& Idx)
 ///   ::= ifexpr
 ///   ::= forexpr
 ///   ::= whileexpr
-///   ::= reptexpr
+///   ::= repexpr
 ///   ::= loopexpr
 std::shared_ptr<ExprAST> ParsePrimary(std::string& Code, int& Idx)
 {
@@ -386,6 +386,9 @@ std::shared_ptr<ExprAST> ParsePrimary(std::string& Code, int& Idx)
 ///   ::= unaryop unary
 std::shared_ptr<ExprAST> ParseUnary(std::string& Code, int& Idx)
 {
+    if (CurTok == tok_undef)
+        return nullptr;
+
     // If the current token is not an operator, it must be a primary expr.
     if (!isascii(CurTok) || CurTok == '(' || CurTok == ',' || CurTok == '@')
         return ParsePrimary(Code, Idx);

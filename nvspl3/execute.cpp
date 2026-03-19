@@ -10,6 +10,7 @@
 #include "interactiveMode.h"
 #include <map>
 #include <cmath>
+#include <chrono>
 
 #ifdef _WIN32
 #include <Windows.h>
@@ -336,7 +337,7 @@ Value CallExprAST::execute()
     }
 
     if (std::find(StdFuncList.begin(), StdFuncList.end(), Callee) != StdFuncList.end())
-        return Value(CallStdFunc(Callee, ArgsV));
+        return CallStdFunc(Callee, ArgsV);
 
     // Look up the name in the global module table.
     std::shared_ptr<FunctionAST> CalleeF = Functions[Callee];
@@ -380,7 +381,7 @@ Value IfExprAST::execute()
             return Value(valueType::val_err);
         return ElseV;
     }
-    return Value(0);
+    return Value(valueType::val_undef);
 }
 
 Value ForExprAST::execute()
@@ -426,12 +427,7 @@ Value ForExprAST::execute()
         if (EndCond.isErr() || !EndCond.getdVal()) break;
 
         BodyExpr = Body->execute();
-        if (BodyExpr.isErr()) break;
-        if (BodyExpr.getvType() == valueType::val_break)
-        {
-            BodyExpr.setvType(valueType::val_data);
-            break;
-        }
+        if (BodyExpr.isErr() || BodyExpr.isBreak()) break;
         StackMemory.setValue(StartVarAddr,
             Value(StackMemory.getValue(StartVarAddr).getdVal() + StepVal.getdVal()));
     }
@@ -442,7 +438,7 @@ Value ForExprAST::execute()
     if (BodyExpr.isErr() || EndCond.isErr())
         return Value(valueType::val_err);
 
-    return BodyExpr;
+    return Value(valueType::val_undef);
 }
 
 Value WhileExprAST::execute()
@@ -456,12 +452,7 @@ Value WhileExprAST::execute()
         if (EndCond.isErr() || !EndCond.getdVal()) break;
 
         BodyExpr = Body->execute();
-        if (BodyExpr.isErr()) break;
-        if (BodyExpr.getvType() == valueType::val_break)
-        {
-            BodyExpr.setvType(valueType::val_data);
-            break;
-        }
+        if (BodyExpr.isErr() || BodyExpr.isBreak()) break;
     }
     StackMemory.deleteScope(StackIdx);
     for (int i = SymTbl.size(); i > TblIdx; i--) SymTbl.pop_back();
@@ -469,7 +460,7 @@ Value WhileExprAST::execute()
     if (EndCond.isErr() || BodyExpr.isErr())
         return Value(valueType::val_err);
 
-    return BodyExpr;
+    return Value(valueType::val_undef);
 }
 
 Value RepeatExprAST::execute()
@@ -486,12 +477,7 @@ Value RepeatExprAST::execute()
     {
         BodyExpr = Body->execute();
         
-        if (BodyExpr.isErr()) break;
-        if (BodyExpr.getvType() == valueType::val_break)
-        {
-            BodyExpr.setvType(valueType::val_data);
-            break;
-        }
+        if (BodyExpr.isErr() || BodyExpr.isBreak()) break;
     }
     StackMemory.deleteScope(StackIdx);
     for (int i = SymTbl.size(); i > TblIdx; i--) SymTbl.pop_back();
@@ -499,7 +485,7 @@ Value RepeatExprAST::execute()
     if (BodyExpr.isErr())
         return Value(valueType::val_err);
     
-    return BodyExpr;
+    return Value(valueType::val_undef);
 }
 
 Value LoopExprAST::execute()
@@ -511,12 +497,7 @@ Value LoopExprAST::execute()
     {
         BodyExpr = Body->execute();
 
-        if (BodyExpr.isErr()) break;
-        if (BodyExpr.getvType() == valueType::val_break)
-        {
-            BodyExpr.setvType(valueType::val_data);
-            break;
-        }
+        if (BodyExpr.isErr() || BodyExpr.isBreak()) break;
     }
     StackMemory.deleteScope(StackIdx);
     for (int i = SymTbl.size(); i > TblIdx; i--) SymTbl.pop_back();
@@ -524,7 +505,7 @@ Value LoopExprAST::execute()
     if (BodyExpr.isErr())
         return Value(valueType::val_err);
     
-    return BodyExpr;
+    return Value(valueType::val_undef);
 }
 
 Value BreakExprAST::execute()
@@ -555,8 +536,7 @@ Value BlockExprAST::execute()
     for (auto& Expr : Expressions)
     {
         RetVal = Expr->execute();
-        if (RetVal.getvType() == valueType::val_break || 
-            RetVal.getvType() == valueType::val_return) break;
+        if (RetVal.isBreak() || RetVal.isReturn()) break;
     }
     StackMemory.deleteScope(StackIdx);
     for (int i = SymTbl.size(); i > TblIdx; i--) SymTbl.pop_back();
@@ -606,7 +586,7 @@ void HandleTopLevelExpression(std::string& Code, int& Idx)
     if (auto FnAST = ParseTopLevelExpr(Code, Idx))
     {
         Value RetVal = FnAST->execute(std::vector<Value>());
-        if (!RetVal.isErr() && IsInteractive)
+        if (RetVal.getvType() == valueType::val_data && IsInteractive)
         {
             if (RetVal.getdType() == dataType::t_double)
                 fprintf(stderr, "Evaluated to %f\n", RetVal.getdVal());
@@ -617,7 +597,7 @@ void HandleTopLevelExpression(std::string& Code, int& Idx)
     else GetNextToken(Code, Idx); // Skip token for error recovery.
 }
 
-void HandleImport(std::string& Code, int& Idx, int tmpCurTok, int tmpLastChar, bool tmpFlag)
+void HandleImport(std::string& Code, int& Idx, bool tmpFlag)
 {
     if (auto ImAST = ParseImport(Code, Idx))
     {
@@ -635,17 +615,17 @@ void HandleImport(std::string& Code, int& Idx, int tmpCurTok, int tmpLastChar, b
         ModuleCode += EOF;
         fclose(fp);
 
-        GetNextToken(ModuleCode, moduleIdx);
+		LastChar = ' ';
+		GetNextToken(ModuleCode, moduleIdx);
 
-        while (true)
+		while (true)
         {
             if (CurTok == tok_eof) break;
 
             switch (CurTok)
             {
             case tok_import:
-                HandleImport(ModuleCode, moduleIdx, CurTok, LastChar, tmpFlag);
-                GetNextToken(ModuleCode, moduleIdx);
+                HandleImport(ModuleCode, moduleIdx, tmpFlag);
                 break;
             case tok_def:
                 HandleDefinition(ModuleCode, moduleIdx);
@@ -655,9 +635,9 @@ void HandleImport(std::string& Code, int& Idx, int tmpCurTok, int tmpLastChar, b
                 break;
             }
         }
-        CurTok = tmpCurTok, LastChar = tmpLastChar;
+		CurTok = Token::tok_undef, LastChar = ' ';
 
-        if (tmpFlag) fprintf(stderr, "Successfully installed module \"%s\".\n",
+        if (tmpFlag) fprintf(stderr, "Successfully imported module \"%s\".\n",
             ImAST->getModuleName().c_str());
     }
     else GetNextToken(Code, Idx); // Skip token for error recovery.
@@ -679,10 +659,8 @@ void MainLoop(std::string& Code, int& Idx)
             break;
         case tok_import:
             if (IsInteractive) tmpFlag = true;
-            HandleImport(Code, Idx, CurTok, LastChar, tmpFlag);
+            HandleImport(Code, Idx, tmpFlag);
             IsInteractive = tmpFlag;
-            if (IsInteractive) fprintf(stderr, ">>> ");
-            GetNextToken(Code, Idx);
             break;
         case tok_def:
             HandleDefinition(Code, Idx);
@@ -715,18 +693,13 @@ void ExecuteScript(const char* FileName)
     MainCode += EOF;
     fclose(fp);
 
-#ifdef _WIN32
-    DWORD t = GetTickCount64();
-#endif
+    auto start_time = std::chrono::steady_clock::now();
 
     InitBinopPrec();
     GetNextToken(MainCode, MainIdx);
     MainLoop(MainCode, MainIdx);
 
-#ifdef _WIN32
-    DWORD diff = (GetTickCount64() - t);
-    fprintf(stderr, "\nExecution finished (%.3lfs).\n", (double)diff / 1000);
-#else
-    fprintf(stderr, "\nExecution finished.\n");
-#endif
+    auto end_time = std::chrono::steady_clock::now();
+    std::chrono::duration<double> diff = end_time - start_time;
+    fprintf(stderr, "\nExecution finished (%.3lfs).\n", diff.count());
 }

@@ -45,7 +45,7 @@ void HandleDefinition(std::string& Code, int& Idx);
 
 void HandleTopLevelExpression(std::string& Code, int& Idx);
 
-void HandleImport(std::string& Code, int& Idx, int tmpCurTok, int tmpLastChar, bool tmpFlag);
+void HandleImport(std::string& Code, int& Idx, bool tmpFlag);
 
 void MainLoop(std::string& Code, int& Idx);
 

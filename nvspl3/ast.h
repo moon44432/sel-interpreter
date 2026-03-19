@@ -163,7 +163,7 @@ public:
     Value execute() override;
 };
 
-/// RepeatExprAST - Expression class for rept.
+/// RepeatExprAST - Expression class for rep.
 class RepeatExprAST : public ExprAST
 {
     std::shared_ptr<ExprAST> IterNum;

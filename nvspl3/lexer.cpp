@@ -56,7 +56,7 @@ int GetTok(std::string& Code, int& Idx)
             return tok_for;
         if (IdStr == "while")
             return tok_while;
-        if (IdStr == "rept")
+        if (IdStr == "rep")
             return tok_repeat;
         if (IdStr == "loop")
             return tok_loop;
